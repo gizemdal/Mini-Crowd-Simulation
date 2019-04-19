@@ -5,7 +5,7 @@ Name: Gizem Dal
 
 Pennkey: gizemdal
 
-Live demo:
+Live demo: https://gizemdal.github.io/crowd_simulation/
 
 Resources: My main resources include my old implementations from previous assignments such as procedural sky, instanced rendering. As I listed in previous assignment README files, _The Book of Shaders_ (https://thebookofshaders.com) has been a very helpful resource.
 
