@@ -22,4 +22,6 @@ My current implementation contains a simple crowd simulation where the agents (I
 
 ## Screenshots from Milestone:
 
+![](progress/far.png)
 
+![](progress/near.png)
