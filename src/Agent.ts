@@ -10,6 +10,8 @@ export default class Agent {
 	dir: vec3; // agent's current direction
 	col: vec3; // agent color (based on goals/decisions)
 	transMat: mat4; // agent's transformation matrix
+	dest: vec3; // agent's destination
+	interests: Array<string>; // agent's interests
 
 	constructor(pos: vec3, dir: vec3, col:vec3) {
 		this.id = idCount;
@@ -17,6 +19,8 @@ export default class Agent {
 		this.pos = pos;
 		this.dir = dir;
 		this.col = col;
+		this.dest = vec3.fromValues(0, 0, 0); // default destination
+		this.interests = []; // start off with no event preference
 	}
 
 	// Compare two Agent instances by id
@@ -39,6 +43,11 @@ export default class Agent {
 		this.col = newCol;
 	}
 
+	// Change the destination of the agent
+	changeDest(newDest: vec3) {
+		this.dest = newDest;
+	}
+
 	// Calculate the corresponding transformation matrix for instanced rendering
 	computeMatrix() {
 	    var trans = mat4.fromValues(1.0, 0.0, 0.0, 0.0,
@@ -53,6 +62,34 @@ export default class Agent {
 		return Math.sqrt(Math.pow(this.pos[0] - other.pos[0], 2) +
 						 Math.pow(this.pos[1] - other.pos[1], 2) +
 						 Math.pow(this.pos[2] - other.pos[2], 2));
+	}
+
+	// Add an interest keyword (if it doesn't exist)
+	addInterest(key: string) {
+		var idx = this.interests.indexOf(key);
+		if (idx != -1) {
+			return -1; // key already exists!!!
+		}
+		this.interests.push(key);
+		return 1; // success!
+	}
+
+	// Remove an interest keyword
+	removeInterest(key: string) {
+		var idx = this.interests.indexOf(key);
+		if (idx == -1) {
+			return -1; // key doesn't exist!!!
+		}
+		var last = this.interests.length - 1;
+		if (idx == last) {
+			this.interests.pop();
+			return 1; // success
+		} else {
+			var newArr = this.interests.slice(0, idx);
+			newArr.concat(this.interests.slice(idx + 1, last + 1));
+			this.interests = newArr;
+			return 1; // success
+		}
 	}
 
 };

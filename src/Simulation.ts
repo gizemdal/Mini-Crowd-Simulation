@@ -6,15 +6,16 @@ function getRandomInt(max: number) {
   return Math.floor(Math.random() * Math.floor(max));
 }
 
+let eventKeywords = ["disaster", "concert", "sports", "protest"];
+
 export default class Simulation {
 
 	agents: Agent[]; // store all the created agents here
 	numAgents: number; // number of agents to generate
 	dimensions: vec2; // dimensions of the plane
-	locationMap: number[][]; // data structure to store cell occupation
+	locationMap: number[][]; // data structure to store cell occupation: 0 = empty, other = occupied
 	densityMap: number[][]; // data structure to store number of agent intersection per cell
 	height: number; // simulation height
-	dest: vec3 = vec3.fromValues(0, 0, 0); // destination of the crowd (for milestone only)
 
 	constructor(n: number, d: vec2, h: number) {
 		this.agents = [];
@@ -49,6 +50,9 @@ export default class Simulation {
 			var dirA = vec3.fromValues(0, 0, 1); // start all agents looking forward
 			var colA = vec3.fromValues(1, 0, 0); // make all agents initially red
 			var newA = new Agent(posA, dirA, colA);
+			if (newA.getId() % 4 == 0) {
+				newA.changeDest(vec3.fromValues(50, 0, 30));
+			}
 			// fill the locationMap with agent's id
 			this.locationMap[x][z] = newA.getId();
 			// put the agent to the list of agents
@@ -87,12 +91,10 @@ export default class Simulation {
 		// first calculate potential final position coordinates, create a "potential" locationMap
 		//var potentialMap = Object.assign([], this.locationMap);
 		for (let a of this.agents) {
-			//console.log(a.getId() + " " + a.getPos());
-			//console.log(this.locationMap);
 			var currPos = a.getPos(); // current position of the agent
-			var dir = vec3.fromValues(this.dest[0] - currPos[0],
-									  this.dest[1] - currPos[1],
-									  this.dest[2] - currPos[2]);
+			var dir = vec3.fromValues(a.dest[0] - currPos[0],
+									  a.dest[1] - currPos[1],
+									  a.dest[2] - currPos[2]);
 			dir = normalize(dir, dir);
 			var potentialPos = vec3.fromValues(currPos[0] + Math.sign(dir[0])*Math.round(Math.abs(dir[0])),
 											   currPos[1] + Math.sign(dir[1])*Math.round(Math.abs(dir[1])),
@@ -133,7 +135,9 @@ export default class Simulation {
 
 	// change the goal destination of the crowd (for this milestone, this applies to whole crowd)
 	changeDestination(dest: vec3) {
-		this.dest = dest;
+		for (let a of this.agents) {
+			a.changeDest(dest);
+		}
 	}
 
 	// Get the agent array

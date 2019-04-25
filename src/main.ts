@@ -8,7 +8,8 @@ import OpenGLRenderer from './rendering/gl/OpenGLRenderer';
 import Camera from './Camera';
 import Simulation from './Simulation';
 import Agent from './Agent';
-import {setGL, readTextFile} from './globals';
+import {setGL} from './globals';
+import {readTextFile} from './globals';
 import ShaderProgram, {Shader} from './rendering/gl/ShaderProgram';
 
 // Define an object with application parameters and button callbacks
@@ -206,13 +207,13 @@ function main() {
     processKeyPresses();
     renderer.render(camera, lambert, [
       plane,
-    ], time);
+    ], time, 0);
     renderer.render(camera, flat, [
       square,
-    ], time);
+    ], time, 0);
     renderer.render(camera, instanced, [
       agent,
-    ], time);
+    ], time, 1);
     simulation.simulationStep(); // simulation step
     instanceRendering();
     stats.end();

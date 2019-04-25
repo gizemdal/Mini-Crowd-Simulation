@@ -115,7 +115,7 @@ class ShaderProgram {
     }
   }
 
-  draw(d: Drawable) {
+  draw(d: Drawable, type: number) {
     this.use();
 
     if (this.attrPos != -1 && d.bindPos()) {
@@ -165,8 +165,12 @@ class ShaderProgram {
     }
 
     d.bindIdx();
-    //gl.drawElements(d.drawMode(), d.elemCount(), gl.UNSIGNED_INT, 0);
-    gl.drawElementsInstanced(d.drawMode(), d.elemCount(), gl.UNSIGNED_INT, 0, d.numInstances);
+    if (type == 0) {
+      gl.drawElements(d.drawMode(), d.elemCount(), gl.UNSIGNED_INT, 0);
+    } else if (type == 1) {
+      gl.drawElementsInstanced(d.drawMode(), d.elemCount(), gl.UNSIGNED_INT, 0, d.numInstances);
+    }
+    //gl.drawElementsInstanced(d.drawMode(), d.elemCount(), gl.UNSIGNED_INT, 0, d.numInstances);
 
     if (this.attrPos != -1) gl.disableVertexAttribArray(this.attrPos);
     if (this.attrNor != -1) gl.disableVertexAttribArray(this.attrNor);
