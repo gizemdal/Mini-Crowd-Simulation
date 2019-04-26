@@ -6,14 +6,7 @@ export default class Event {
 
 	pos: vec3; // center of the event happening
 	scopeRad: number; // scope radius of the event
-	keywords: Array<string>(); // keywords associated with this event
-
-	// Default event
-	constructor() {
-		this.pos = vec3.fromValues(0, 0, 0);
-		this.scopeRad = 10;
-		this.keywords = []; // nothing particular about this event
-	}
+	keywords: Array<string>; // keywords associated with this event
 
 	// Targeted event
 	constructor(pos: vec3, rad: number, keys: Array<string>) {

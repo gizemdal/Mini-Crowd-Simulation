@@ -7,20 +7,22 @@ let idCount: number = 1; // generate a unique id for each agent
 export default class Agent {
 	id: number; // agent id: unique per agent
 	pos: vec3; // agent's current position
-	dir: vec3; // agent's current direction
 	col: vec3; // agent color (based on goals/decisions)
 	transMat: mat4; // agent's transformation matrix
 	dest: vec3; // agent's destination
-	interests: Array<string>; // agent's interests
+	interests: string[]; // agent's interests
+	markerId: number; // index of the marker where the agent exists
+	minDist: number; // minimum distance to destination
 
-	constructor(pos: vec3, dir: vec3, col:vec3) {
+	constructor(pos: vec3, col:vec3, mId: number) {
 		this.id = idCount;
 		idCount++; // increment the id counter
 		this.pos = pos;
-		this.dir = dir;
 		this.col = col;
+		this.markerId = mId;
 		this.dest = vec3.fromValues(0, 0, 0); // default destination
 		this.interests = []; // start off with no event preference
+		this.minDist = Math.sqrt(pos[0] * pos[0] + pos[1] * pos[1] + pos[2] * pos[2]);
 	}
 
 	// Compare two Agent instances by id
@@ -46,6 +48,10 @@ export default class Agent {
 	// Change the destination of the agent
 	changeDest(newDest: vec3) {
 		this.dest = newDest;
+		var destM = vec3.fromValues(this.dest[0] - this.pos[0],
+							        this.dest[1] - this.pos[1],
+							        this.dest[2] - this.pos[2]);
+		this.minDist = Math.sqrt(destM[0] * destM[0] + destM[1] * destM[1] + destM[2] * destM[2]);
 	}
 
 	// Calculate the corresponding transformation matrix for instanced rendering

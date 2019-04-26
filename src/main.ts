@@ -15,37 +15,53 @@ import ShaderProgram, {Shader} from './rendering/gl/ShaderProgram';
 // Define an object with application parameters and button callbacks
 // This will be referred to by dat.GUI's functions that add GUI elements.
 const controls = {
-  tesselations: 5,
   'Load Scene': loadScene, // A function pointer, essentially
+  buildingDensity: 5,
 };
 
 let square: Square;
 let plane : Plane;
-let wPressed: boolean;
-let aPressed: boolean;
-let sPressed: boolean;
-let dPressed: boolean;
 let planePos: vec2;
+
 let time = 0.0;
 
-let agent: Mesh;
+let agent: Mesh; // agent instance
 let simulation: Simulation; // simulation instance
+let cube: Mesh; // cube for buildings
+let pentagon: Mesh; // pentagon for buildings
+let hexagon: Mesh; // hexagon for buildings
+
+// Object files
 let obj0: string = readTextFile('../obj_files/cylinder.obj');
+let obj1: string = readTextFile('../obj_files/cube.obj');
+let obj2: string = readTextFile('../obj_files/pentagon.obj');
+let obj3: string = readTextFile('../obj_files/hex.obj');
+
 
 function loadScene() {
+  // Background
   square = new Square(vec3.fromValues(0, 0, 0));
   square.create();
-  plane = new Plane(vec3.fromValues(0,0,0), vec2.fromValues(1000,1000), 20);
+
+  // Terrain
+  plane = new Plane(vec3.fromValues(0,-3,0), vec2.fromValues(150,150), 20);
   plane.create();
+
+  // Instances
   let center = vec3.fromValues(0.0, 0.0, 0.0);
   agent = new Mesh(obj0, center); // the agent instance
   agent.create();
-  simulation = new Simulation(1000, plane.scale, 0);
 
-  wPressed = false;
-  aPressed = false;
-  sPressed = false;
-  dPressed = false;
+  cube = new Mesh(obj1, center);
+  cube.create();
+
+  pentagon = new Mesh(obj2, center);
+  pentagon.create();
+
+  hexagon = new Mesh(obj3, center);
+  hexagon.create();
+
+  simulation = new Simulation(75, plane.scale, 0, controls.buildingDensity * 5);
   planePos = vec2.fromValues(0,0);
 }
 
@@ -78,9 +94,9 @@ function instanceRendering() {
     t3Array.push(mat[13]);
     t3Array.push(mat[14]);
     t3Array.push(mat[15]);
-    colorsArray.push(1.0);
-    colorsArray.push(1.0);
-    colorsArray.push(1.0);
+    colorsArray.push(a.col[0]);
+    colorsArray.push(a.col[1]);
+    colorsArray.push(a.col[2]);
     colorsArray.push(1.0); // Alpha channel
   }
 
@@ -93,41 +109,134 @@ function instanceRendering() {
   agent.setNumInstances(n);
 }
 
-function main() {
-  window.addEventListener('keypress', function (e) {
-    // console.log(e.key);
-    switch(e.key) {
-      case 'w':
-      wPressed = true;
-      break;
-      case 'a':
-      aPressed = true;
-      break;
-      case 's':
-      sPressed = true;
-      break;
-      case 'd':
-      dPressed = true;
-      break;
-    }
-  }, false);
+function createBuildings() {
+  let buildingIdx = simulation.getBuildingIndices();
+  let buildingMat = simulation.getBuildingMatrices();
 
-  window.addEventListener('keyup', function (e) {
-    switch(e.key) {
-      case 'w':
-      wPressed = false;
-      break;
-      case 'a':
-      aPressed = false;
-      break;
-      case 's':
-      sPressed = false;
-      break;
-      case 'd':
-      dPressed = false;
-      break;
+  let t0CArray = []; // col0 array for cube
+  let t1CArray = []; // col1 array for cube
+  let t2CArray = []; // col2 array for cube
+  let t3CArray = []; // col2 array for cube
+  let colorsCArray = []; // colors array for cube
+
+  let t0PArray = []; // col0 array for pentagon
+  let t1PArray = []; // col1 array for pentagon
+  let t2PArray = []; // col2 array for pentagon
+  let t3PArray = []; // col2 array for pentagon
+  let colorsPArray = []; // colors array for pentagon
+
+  let t0HArray = []; // col0 array for hexagon
+  let t1HArray = []; // col1 array for hexagon
+  let t2HArray = []; // col2 array for hextagon
+  let t3HArray = []; // col2 array for hexagon
+  let colorsHArray = []; // colors array for hexagon
+
+  let numC = 0; // number of cubes
+  let numP = 0; // number of pentagons
+  let numH = 0; // number of hexagons
+
+  // cube = 0, pentagon = 1, hexagon = 2
+
+  for (var i = 0; i < buildingIdx.length; i++) {
+    var mat = buildingMat[i];
+    if (buildingIdx[i] == 0) {
+      t0CArray.push(mat[0]);
+      t0CArray.push(mat[1]);
+      t0CArray.push(mat[2]);
+      t0CArray.push(mat[3]);
+      t1CArray.push(mat[4]);
+      t1CArray.push(mat[5]);
+      t1CArray.push(mat[6]);
+      t1CArray.push(mat[7]);
+      t2CArray.push(mat[8]);
+      t2CArray.push(mat[9]);
+      t2CArray.push(mat[10]);
+      t2CArray.push(mat[11]);
+      t3CArray.push(mat[12]);
+      t3CArray.push(mat[13]);
+      t3CArray.push(mat[14]);
+      t3CArray.push(mat[15]);
+      colorsCArray.push(1.0);
+      colorsCArray.push(0.0);
+      colorsCArray.push(1.0);
+      colorsCArray.push(1.0);
+      numC++;
+    } else if (buildingIdx[i] == 1) {
+        t0PArray.push(mat[0]);
+        t0PArray.push(mat[1]);
+        t0PArray.push(mat[2]);
+        t0PArray.push(mat[3]);
+        t1PArray.push(mat[4]);
+        t1PArray.push(mat[5]);
+        t1PArray.push(mat[6]);
+        t1PArray.push(mat[7]);
+        t2PArray.push(mat[8]);
+        t2PArray.push(mat[9]);
+        t2PArray.push(mat[10]);
+        t2PArray.push(mat[11]);
+        t3PArray.push(mat[12]);
+        t3PArray.push(mat[13]);
+        t3PArray.push(mat[14]);
+        t3PArray.push(mat[15]);
+        colorsPArray.push(0.0);
+        colorsPArray.push(0.0);
+        colorsPArray.push(1.0);
+        colorsPArray.push(1.0);
+        numP++;
+    } else if (buildingIdx[i] == 2) {
+        t0HArray.push(mat[0]);
+        t0HArray.push(mat[1]);
+        t0HArray.push(mat[2]);
+        t0HArray.push(mat[3]);
+        t1HArray.push(mat[4]);
+        t1HArray.push(mat[5]);
+        t1HArray.push(mat[6]);
+        t1HArray.push(mat[7]);
+        t2HArray.push(mat[8]);
+        t2HArray.push(mat[9]);
+        t2HArray.push(mat[10]);
+        t2HArray.push(mat[11]);
+        t3HArray.push(mat[12]);
+        t3HArray.push(mat[13]);
+        t3HArray.push(mat[14]);
+        t3HArray.push(mat[15]);
+        colorsHArray.push(1.0);
+        colorsHArray.push(1.0);
+        colorsHArray.push(0.0);
+        colorsHArray.push(1.0);
+        numH++;
     }
-  }, false);
+  }
+
+  // create cube instances
+  let t0Cube: Float32Array = new Float32Array(t0CArray);
+  let t1Cube: Float32Array = new Float32Array(t1CArray);
+  let t2Cube: Float32Array = new Float32Array(t2CArray);
+  let t3Cube: Float32Array = new Float32Array(t3CArray);
+  let colCube: Float32Array = new Float32Array(colorsCArray);
+  cube.setInstanceVBOs(t0Cube, t1Cube, t2Cube, t3Cube, colCube);
+  cube.setNumInstances(numC);
+
+  // create pentagon instances
+  let t0Pen: Float32Array = new Float32Array(t0PArray);
+  let t1Pen: Float32Array = new Float32Array(t1PArray);
+  let t2Pen: Float32Array = new Float32Array(t2PArray);
+  let t3Pen: Float32Array = new Float32Array(t3PArray);
+  let colPen: Float32Array = new Float32Array(colorsPArray);
+  pentagon.setInstanceVBOs(t0Pen, t1Pen, t2Pen, t3Pen, colPen);
+  pentagon.setNumInstances(numP);  
+
+  // create hex instances
+  let t0Hex: Float32Array = new Float32Array(t0HArray);
+  let t1Hex: Float32Array = new Float32Array(t1HArray);
+  let t2Hex: Float32Array = new Float32Array(t2HArray);
+  let t3Hex: Float32Array = new Float32Array(t3HArray);
+  let colHex: Float32Array = new Float32Array(colorsHArray);
+  hexagon.setInstanceVBOs(t0Hex, t1Hex, t2Hex, t3Hex, colHex);
+  hexagon.setNumInstances(numH);
+}
+
+function main() {
 
   // Initial display for framerate
   const stats = Stats();
@@ -156,10 +265,14 @@ function main() {
   // Initial call to instanced rendering
   instanceRendering();
 
+  // Initial call to building rendering
+  createBuildings();
+
   const camera = new Camera(vec3.fromValues(0, 30, -20), vec3.fromValues(0, 0, 0));
 
   const renderer = new OpenGLRenderer(canvas);
-  renderer.setClearColor(164.0 / 255.0, 233.0 / 255.0, 1.0, 1);
+  //renderer.setClearColor(164.0 / 255.0, 233.0 / 255.0, 1.0, 1);
+  renderer.setClearColor(0.0, 0.0, 0.0, 1);
   gl.enable(gl.DEPTH_TEST);
 
   const lambert = new ShaderProgram([
@@ -178,44 +291,26 @@ function main() {
     new Shader(gl.FRAGMENT_SHADER, require('./shaders/instanced-frag.glsl')),
   ]);
 
-  function processKeyPresses() {
-    let velocity: vec2 = vec2.fromValues(0,0);
-    if(wPressed) {
-      velocity[1] += 1.0;
-    }
-    if(aPressed) {
-      velocity[0] += 1.0;
-    }
-    if(sPressed) {
-      velocity[1] -= 1.0;
-    }
-    if(dPressed) {
-      velocity[0] -= 1.0;
-    }
-    let newPos: vec2 = vec2.fromValues(0,0);
-    vec2.add(newPos, velocity, planePos);
-    lambert.setPlanePos(newPos);
-    planePos = newPos;
-  }
-
   // This function will be called every frame
   function tick() {
     camera.update();
     stats.begin();
     gl.viewport(0, 0, window.innerWidth, window.innerHeight);
+    instanceRendering();
     renderer.clear();
-    processKeyPresses();
+    lambert.setMode(1.0);
     renderer.render(camera, lambert, [
       plane,
     ], time, 0);
-    renderer.render(camera, flat, [
+    lambert.setMode(2.0);
+    renderer.render(camera, lambert, [
       square,
     ], time, 0);
-    renderer.render(camera, instanced, [
-      agent,
+    lambert.setMode(0.0);
+    renderer.render(camera, lambert, [
+      agent, cube, pentagon, hexagon,
     ], time, 1);
-    simulation.simulationStep(); // simulation step
-    instanceRendering();
+    simulation.simulationStep(10); // simulation step
     stats.end();
     // Tell the browser to call `tick` again whenever it renders a new frame
     time += 1.0;

@@ -1,58 +1,127 @@
-import {vec3, vec2} from 'gl-matrix';
-import {normalize} from 'gl-vec3';
+import {vec3, vec2, mat4} from 'gl-matrix';
+import {normalize, angle} from 'gl-vec3';
 import Agent from './Agent';
+import Event from './Event';
+import Building from './Building';
+import Marker from './Marker';
 
 function getRandomInt(max: number) {
   return Math.floor(Math.random() * Math.floor(max));
 }
 
-let eventKeywords = ["disaster", "concert", "sports", "protest"];
+let eventKeywords = ["food", "concert", "sports", "protest", "exposition"];
+let minHeight = 5; // minimum height for buildings
+let maxHeight = 30; // maximum height for buildings
+let rad = 5; // radius for building occupance
 
 export default class Simulation {
 
 	agents: Agent[]; // store all the created agents here
 	numAgents: number; // number of agents to generate
 	dimensions: vec2; // dimensions of the plane
-	locationMap: number[][]; // data structure to store cell occupation: 0 = empty, other = occupied
-	densityMap: number[][]; // data structure to store number of agent intersection per cell
+	locationMap: number[][]; // data structure to store cell occupation: 0 = empty, -1 = building, other = occupied
 	height: number; // simulation height
+	events: Event[]; // current events happening in the city
+	buildings: Building[]; // current buildings in the city
+	markers: Marker[]; // markers in the simulation
 
-	constructor(n: number, d: vec2, h: number) {
+	constructor(n: number, d: vec2, h: number, b: number) {
 		this.agents = [];
+		this.buildings = [];
+		this.markers = [];
 		this.locationMap = new Array(d[0]).fill(0).map(() => new Array(d[1]).fill(0));
-		this.densityMap = new Array(d[0]).fill(0).map(() => new Array(d[1]).fill(0));
 		this.numAgents = n;
 		this.dimensions = d;
 		this.height = h;
-
+		this.setupBuildings(b);
 		this.initializeSimulation();
 	}
 
-	// Setup the agents in random locations and the density map
-	initializeSimulation() {
-		// Create numAgents amount of agents and place them randomly
-		for (var i = 0; i < this.numAgents; i++) {
-			// generate random starting position until it's valid
+	// Setup the buildings in the city (generate b amount of buildings)
+	setupBuildings(b: number) {
+		for (var i = 0; i < b; i++) {
+			// pick a random building position
 			var x = 0;
 			var z = 0;
 			while (true) {
-				x = getRandomInt(this.dimensions[0]);
-				z = getRandomInt(this.dimensions[1]);
+				x = getRandomInt(this.dimensions[0] - 2*rad) + rad;
+				z = getRandomInt(this.dimensions[1] - 2*rad) + rad;
 				// found valid location
 				if (this.locationMap[x][z] == 0) {
 					break;
 				}
 			}
-			// create an Agent at this location
-			var posA = vec3.fromValues(x - this.dimensions[0] / 2, 
+			var posB = vec3.fromValues(x - this.dimensions[0] / 2,
+									   this.height,
+									   z - this.dimensions[1] / 2);
+			var newBuilding = new Building(posB, minHeight + getRandomInt(maxHeight - minHeight));
+		    // push more matrices and meshes to make the building reach the floor
+		    while (!newBuilding.hasReachedFloor()) {
+		      var newT = mat4.fromValues(3.0, 0.0, 0.0, 0.0,
+		                                0.0, 3.0, 0.0, 0.0,
+		                                0.0, 0.0, 3.0, 0.0,
+		                                newBuilding.pos[0], newBuilding.remainingHeight, newBuilding.pos[2], 1.0);
+		      newBuilding.addFloor(getRandomInt(3), newT);
+		    }
+		    // add the building to the list of buildings
+		    this.buildings.push(newBuilding);
+
+		    // occupy the neighboring cells, as well as the center cell, for the building
+		    for (var j = x - rad; j <= x + rad; j++) {
+		    	for (var k = z - rad; k <= z + rad; k++) {
+		    		if (j < 0 || j >= this.dimensions[0] ||
+		    			k < 0 || k >= this.dimensions[1]) {
+		    			continue;
+		    		}
+		    		this.locationMap[j][k] = -1; // occupy the grid cell
+		    	}
+		    }
+		}
+	}
+
+	// Setup the agents in random marker locations
+	initializeSimulation() {
+		// Create numAgents * 100 markers
+		for (var i = 0; i < this.numAgents * 100; i++) {
+			// generate random marker position until it's valid
+			var x = 0;
+			var z = 0;
+			while (true) {
+				x = getRandomInt(this.dimensions[0] - 20) + 10;
+				z = getRandomInt(this.dimensions[1] - 20) + 10;
+				// found valid location
+				if (this.locationMap[x][z] == 0) {
+					break;
+				}
+			}
+			// create a marker at this location
+			var posM = vec3.fromValues(x - this.dimensions[0] / 2, 
 									   this.height, 
 									   z - this.dimensions[1] / 2);
-			var dirA = vec3.fromValues(0, 0, 1); // start all agents looking forward
-			var colA = vec3.fromValues(1, 0, 0); // make all agents initially red
-			var newA = new Agent(posA, dirA, colA);
-			if (newA.getId() % 4 == 0) {
-				newA.changeDest(vec3.fromValues(50, 0, 30));
+			var newMarker = new Marker(posM);
+			this.markers.push(newMarker);
+		}
+		// Create numAgents amount of agents and put them at random markers
+		for (var i = 0; i < this.numAgents; i++) {
+			var idx = 0;
+			while (true) {
+				idx = getRandomInt(this.markers.length);
+				var marker = this.markers[idx];
+				if (marker.agent == -1) {
+					break;
+				}
 			}
+			var posA = this.markers[idx].pos;
+			var e = getRandomInt(eventKeywords.length);
+			var colA = vec3.fromValues(Math.min(e*0.12 + (17 % e)*0.05, 1),
+									   Math.min(e*0.15 + (7 % e)*0.04, 1),
+									   Math.min(e*0.21 + (28 % e)*0.07, 1)); // make all agents initially red
+			var newA = new Agent(posA, colA, idx);
+			// give an arbitrary interest to the agent (picked from the list)
+			newA.addInterest(eventKeywords[e]);
+			newA.changeDest(this.markers[getRandomInt(this.markers.length)].pos);
+			// associate this agent with the given marker
+			this.markers[idx].agent = newA.getId();
 			// fill the locationMap with agent's id
 			this.locationMap[x][z] = newA.getId();
 			// put the agent to the list of agents
@@ -60,75 +129,65 @@ export default class Simulation {
 		}
 	}
 
-	// Fill the density map for coloring (must be called after picking agent locations)
-	fillDensityMap(r: number) {
-		for (let a of this.agents) {
-			var posA = a.getPos(); // agent's position
-			// look at the neighboring pixels at a radius = r
-			for (var i = posA[0] - r; i <= posA[0] + r; i++) {
-				for (var j = posA[1] - r; j <= posA[1] + r; j++) {
-					if (i < 0 || j < 0 || i >= this.dimensions[0] || j >= this.dimensions[1]) {
-						continue;
-					}
-					// if cell is not visited yet, mark it for uni-coloring
-					var val = this.locationMap[i][j];
-					if (val == 0) {
-						this.densityMap[i][j] = 1;
-					} else if (val == -1) {
-						// if the cell is marked for multiple agent intersection, leave it
-						continue;
-					} else {
-						// if this cell is occupied by another agent, mark it to be white
-						this.densityMap[i][j] = -1;
-					}
+	// Simulate the crowd by one tick towards given destination point
+	simulationStep(rad: number) {
+		for (var a = 0; a < this.agents.length; a++) {
+			var maxWeight = -1; // keep track of largest weight
+			var closestMarker = -1;	// keep track of the closest marker index
+			for (var m = 0; m < this.markers.length; m++) {
+				// check if the marker is occupied already
+				if (this.markers[m].agent != -1) {
+					continue;
+				}
+				// check if the marker is in the given search scope
+				var vecM = vec3.fromValues(this.markers[m].pos[0] - this.agents[a].getPos()[0],
+										   this.markers[m].pos[1] - this.agents[a].getPos()[1],
+										   this.markers[m].pos[2] - this.agents[a].getPos()[2]);
+				var lM = Math.sqrt(vecM[0] * vecM[0] +
+								   vecM[1] * vecM[1] +
+								   vecM[2] * vecM[2]);
+				if (lM > rad) {
+					continue;
+				}
+				// find the angle between the marker vector and the destination vector
+				var destM = vec3.fromValues(this.agents[a].dest[0] - this.agents[a].getPos()[0],
+											this.agents[a].dest[1] - this.agents[a].getPos()[1],
+											this.agents[a].dest[2] - this.agents[a].getPos()[2]);
+
+				var lDest = Math.sqrt(destM[0] * destM[0] +
+								      destM[1] * destM[1] +
+								      destM[2] * destM[2]);
+				// vector between the marker and destination
+				var destDist = vec3.fromValues(this.agents[a].dest[0] - this.markers[m].pos[0],
+											   this.agents[a].dest[1] - this.markers[m].pos[1],
+											   this.agents[a].dest[2] - this.markers[m].pos[2]);
+				var ldestM = Math.sqrt(destDist[0] * destDist[0] +
+								      destDist[1] * destDist[1] +
+								      destDist[2] * destDist[2]);
+				if (lDest <= ldestM) {
+					continue;
+				}
+				var ang = angle(vecM, destM);
+				// calculate the weight
+				var w = Math.abs(1 + Math.cos(ang) / (1 + lM));
+				if (w > maxWeight) {
+					maxWeight = w;
+					closestMarker = m;
 				}
 			}
-		}
-	}
-
-	// Simulate the crowd by one tick towards given destination point
-	simulationStep() {
-		// first calculate potential final position coordinates, create a "potential" locationMap
-		//var potentialMap = Object.assign([], this.locationMap);
-		for (let a of this.agents) {
-			var currPos = a.getPos(); // current position of the agent
-			var dir = vec3.fromValues(a.dest[0] - currPos[0],
-									  a.dest[1] - currPos[1],
-									  a.dest[2] - currPos[2]);
-			dir = normalize(dir, dir);
-			var potentialPos = vec3.fromValues(currPos[0] + Math.sign(dir[0])*Math.round(Math.abs(dir[0])),
-											   currPos[1] + Math.sign(dir[1])*Math.round(Math.abs(dir[1])),
-											   currPos[2] + Math.sign(dir[2])*Math.round(Math.abs(dir[2])));
-			var newX = Math.ceil(potentialPos[0] + this.dimensions[0] / 2); // new x-location in locationMap
-			var newZ = Math.ceil(potentialPos[2] + this.dimensions[1] / 2); // new z-location in locationMap
-			var oldX = Math.ceil(currPos[0] + this.dimensions[0] / 2); // old x-location in locationMap
-			var oldZ = Math.ceil(currPos[2] + this.dimensions[1] / 2); // old z-location in locationMap
-			// if the potential position is available, move the agent there
-			if (this.locationMap[newX][newZ] == 0) {
-				a.pos = potentialPos;
-				this.locationMap[newX][newZ] = a.getId();
-				// free the old occupied location
-				this.locationMap[oldX][oldZ] = 0;
-			} else if (this.locationMap[newX][newZ+Math.sign(dir[2])] == 0) { //Check out of bounds
-				a.pos = vec3.fromValues(potentialPos[0], potentialPos[1], potentialPos[2] + Math.sign(dir[2]));
-				this.locationMap[newX][newZ+Math.sign(dir[2])] = a.getId();
-				// free the old occupied location
-				this.locationMap[oldX][oldZ] = 0;
-			} else if (this.locationMap[newX+Math.sign(dir[0])][newZ] == 0) { //Check out of bounds
-				a.pos = vec3.fromValues(potentialPos[0] + Math.sign(dir[0]), potentialPos[1], potentialPos[2]);
-				this.locationMap[newX+Math.sign(dir[0])][newZ] = a.getId();
-				// free the old occupied location
-				this.locationMap[oldX][oldZ] = 0;
-			} else if (this.locationMap[oldX][newZ+Math.sign(dir[2])] == 0) { //Check out of bounds
-				a.pos = vec3.fromValues(currPos[0], potentialPos[1], potentialPos[2] + Math.sign(dir[2]));
-				this.locationMap[oldX][newZ+Math.sign(dir[2])] = a.getId();
-				// free the old occupied location
-				this.locationMap[oldX][oldZ] = 0;
-			} else if (this.locationMap[newX+Math.sign(dir[0])][oldZ] == 0) { //Check out of bounds
-				a.pos = vec3.fromValues(potentialPos[0] + Math.sign(dir[0]), potentialPos[1], currPos[2]);
-				this.locationMap[newX+Math.sign(dir[0])][oldZ] = a.getId();
-				// free the old occupied location
-				this.locationMap[oldX][oldZ] = 0;
+			// If closest marker found, move the agent there
+			if (closestMarker != -1) {
+				// free the marker and the location where agent is currently located
+				this.markers[this.agents[a].markerId].agent = -1;
+				this.locationMap[this.markers[this.agents[a].markerId].pos[0] + this.dimensions[0] / 2][this.markers[this.agents[a].markerId].pos[2] + this.dimensions[1] / 2] = 0;
+				// move the agent to the new marker
+				this.agents[a].markerId = closestMarker;
+				this.agents[a].pos = this.markers[closestMarker].pos;
+				this.markers[closestMarker].agent = this.agents[a].getId();
+				this.locationMap[this.markers[closestMarker].pos[0] + this.dimensions[0] / 2][this.markers[closestMarker].pos[2] + this.dimensions[1] / 2] = this.agents[a].getId();
+			} else {
+				// if no possible movement found and there is no event, assign a new destination
+				this.agents[a].changeDest(this.markers[getRandomInt(this.markers.length)].pos);
 			}
 		}
 	}
@@ -143,6 +202,30 @@ export default class Simulation {
 	// Get the agent array
 	getAgents() {
 		return this.agents;
+	}
+
+	// Get the transformation matrices for the buildings
+	getBuildingMatrices() {
+		var matrices = [];
+		for (var i = 0; i < this.buildings.length; i++) {
+			var buildingTs = this.buildings[i].transforms;
+			for (var j = 0; j < buildingTs.length; j++) {
+				matrices.push(buildingTs[j]);
+			}
+		}
+		return matrices;
+	}
+
+	// Get the indices for the buildings
+	getBuildingIndices() {
+		var indices = [];
+		for (var i = 0; i < this.buildings.length; i++) {
+			var buildingIs = this.buildings[i].instances;
+			for (var j = 0; j < buildingIs.length; j++) {
+				indices.push(buildingIs[j]);
+			}
+		}
+		return indices;
 	}
 
 };

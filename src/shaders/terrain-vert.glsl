@@ -5,12 +5,18 @@ uniform mat4 u_Model;
 uniform mat4 u_ModelInvTr;
 uniform mat4 u_ViewProj;
 uniform vec2 u_PlanePos; // Our location in the virtual world displayed by the plane
+uniform float u_Mode;
 
 in vec4 vs_Pos;
 in vec4 vs_Nor;
 in vec4 vs_Col;
+in vec4 vs_T0; // first column of transform matrix
+in vec4 vs_T1; // second column of transform matrix
+in vec4 vs_T2; // third column of transform matrix
+in vec4 vs_T3; // fourth column of transform matrix
+in vec2 vs_UV; // Non-instanced, and presently unused in main(). Feel free to use it for your meshes.
 
-out vec3 fs_Pos;
+out vec4 fs_Pos;
 out vec4 fs_Nor;
 out vec4 fs_Col;
 
@@ -30,9 +36,28 @@ vec2 random2( vec2 p , vec2 seed) {
 
 void main()
 {
-  fs_Pos = vs_Pos.xyz;
-  // fs_Sine = (sin((vs_Pos.x + u_PlanePos.x) * 3.14159 * 0.1) + cos((vs_Pos.z + u_PlanePos.y) * 3.14159 * 0.1));
-  vec4 modelposition = vec4(vs_Pos.x, vs_Pos.y, vs_Pos.z, 1.0);
-  modelposition = u_Model * modelposition;
-  gl_Position = u_ViewProj * modelposition;
+  // if (vs_T0.x != 0.0 || vs_T0.y != 0.0 || vs_T0.z != 0.0 ||
+  // 	vs_T1.x != 0.0 || vs_T1.y != 0.0 || vs_T1.z != 0.0 ||
+  // 	vs_T2.x != 0.0 || vs_T2.y != 0.0 || vs_T2.z != 0.0 ||
+  // 	vs_T3.x != 0.0 || vs_T3.y != 0.0 || vs_T3.z != 0.0) {
+  if (u_Mode == 0.0) { // instances
+  	mat4 T = mat4(vs_T0, vs_T1, vs_T2, vs_T3);
+  	if (vs_Nor.x != 0.0 || vs_Nor.y != 0.0 || vs_Nor.z != 0.0) {
+  		fs_Nor = normalize(vec4(transpose(inverse(T)) * vs_Nor)); 
+  	} else {
+  		fs_Nor = vec4(0.0, 0.0, 0.0, 0.0);
+  	}
+  	vec4 modelposition = T * vs_Pos;
+  	fs_Col = vs_Col;
+  	fs_Pos = modelposition;
+  	gl_Position = u_ViewProj * modelposition;
+  } else if (u_Mode == 1.0) {// } else { // plane
+  	fs_Pos = vs_Pos;
+  	fs_Col = vec4(1.0);
+  	vec4 modelposition = vec4(vs_Pos.x, vs_Pos.y, vs_Pos.z, 1.0);
+  	modelposition = u_Model * modelposition;
+  	gl_Position = u_ViewProj * modelposition;
+  } else if (u_Mode == 2.0) { // background
+    gl_Position = vs_Pos;
+  }
 }

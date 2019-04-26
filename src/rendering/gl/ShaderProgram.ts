@@ -37,6 +37,7 @@ class ShaderProgram {
   unifPlanePos: WebGLUniformLocation;
   unifDimensions: WebGLUniformLocation;
   unifTime: WebGLUniformLocation;
+  unifMode: WebGLUniformLocation; // determine what we're currently rendering
 
   constructor(shaders: Array<Shader>) {
     this.prog = gl.createProgram();
@@ -64,6 +65,7 @@ class ShaderProgram {
     this.unifPlanePos   = gl.getUniformLocation(this.prog, "u_PlanePos");
     this.unifDimensions = gl.getUniformLocation(this.prog, "u_Dimensions");
     this.unifTime = gl.getUniformLocation(this.prog, "u_Time");
+    this.unifMode = gl.getUniformLocation(this.prog, "u_Mode");
   }
 
   use() {
@@ -112,6 +114,13 @@ class ShaderProgram {
     this.use();
     if (this.unifTime !== -1) {
       gl.uniform1f(this.unifTime, t);
+    }
+  }
+
+  setMode(m: number) {
+    this.use();
+    if (this.unifMode !== -1) {
+      gl.uniform1f(this.unifMode, m);
     }
   }
 
