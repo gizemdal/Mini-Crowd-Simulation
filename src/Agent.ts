@@ -1,6 +1,7 @@
 import {vec3, mat4} from 'gl-matrix';
 import {rotateY, scale} from 'gl-mat4';
 import {dot, length, angle, normalize, rotateZ} from 'gl-vec3';
+import Event from './Event';
 
 let idCount: number = 1; // generate a unique id for each agent
 
@@ -12,7 +13,8 @@ export default class Agent {
 	dest: vec3; // agent's destination
 	interests: string[]; // agent's interests
 	markerId: number; // index of the marker where the agent exists
-	minDist: number; // minimum distance to destination
+	currentEvent: number; // id of the current event
+
 
 	constructor(pos: vec3, col:vec3, mId: number) {
 		this.id = idCount;
@@ -22,7 +24,7 @@ export default class Agent {
 		this.markerId = mId;
 		this.dest = vec3.fromValues(0, 0, 0); // default destination
 		this.interests = []; // start off with no event preference
-		this.minDist = Math.sqrt(pos[0] * pos[0] + pos[1] * pos[1] + pos[2] * pos[2]);
+		this.currentEvent = -1;
 	}
 
 	// Compare two Agent instances by id
@@ -48,10 +50,10 @@ export default class Agent {
 	// Change the destination of the agent
 	changeDest(newDest: vec3) {
 		this.dest = newDest;
-		var destM = vec3.fromValues(this.dest[0] - this.pos[0],
-							        this.dest[1] - this.pos[1],
-							        this.dest[2] - this.pos[2]);
-		this.minDist = Math.sqrt(destM[0] * destM[0] + destM[1] * destM[1] + destM[2] * destM[2]);
+	}
+
+	updateCurrentEvent(id: number) {
+		this.currentEvent = id;
 	}
 
 	// Calculate the corresponding transformation matrix for instanced rendering

@@ -1,5 +1,7 @@
 import {vec3, vec2} from 'gl-matrix';
 
+let idCount: number = 0; // generate a unique id for each event
+
 // This class represents each event happening in the city that would potentially
 // attract or repel agents
 export default class Event {
@@ -7,12 +9,17 @@ export default class Event {
 	pos: vec3; // center of the event happening
 	scopeRad: number; // scope radius of the event
 	keywords: Array<string>; // keywords associated with this event
+	id: number; // event id
+	name: string;
 
 	// Targeted event
-	constructor(pos: vec3, rad: number, keys: Array<string>) {
+	constructor(pos: vec3, rad: number, keys: Array<string>, name: string) {
 		this.pos = pos;
 		this.scopeRad = rad;
 		this.keywords = keys;
+		this.id = idCount;
+		this.name = name;
+		idCount++;
 	}
 
 	// Relocate the event

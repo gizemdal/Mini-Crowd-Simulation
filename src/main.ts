@@ -4,6 +4,7 @@ import * as DAT from 'dat-gui';
 import Square from './geometry/Square';
 import Plane from './geometry/Plane';
 import Mesh from './geometry/Mesh';
+import Cube from './geometry/Cube';
 import OpenGLRenderer from './rendering/gl/OpenGLRenderer';
 import Camera from './Camera';
 import Simulation from './Simulation';
@@ -17,11 +18,22 @@ import ShaderProgram, {Shader} from './rendering/gl/ShaderProgram';
 const controls = {
   'Load Scene': loadScene, // A function pointer, essentially
   buildingDensity: 5,
+  eventKeyword: 'food',
+  eventXCoor: 0,
+  eventYCoor: 0,
+  eventScope: 10,
+  eventName: 'default',
+  'Add Event': addEvent,
+  eventToRemove: 'default',
+  'Remove Event': removeEvent,
 };
 
 let square: Square;
 let plane : Plane;
 let planePos: vec2;
+let prevBuildingDensity: number = 5;
+let prevX: number = 0;
+let prevY: number = 0;
 
 let time = 0.0;
 
@@ -30,6 +42,10 @@ let simulation: Simulation; // simulation instance
 let cube: Mesh; // cube for buildings
 let pentagon: Mesh; // pentagon for buildings
 let hexagon: Mesh; // hexagon for buildings
+let dimensions: vec2 = vec2.fromValues(150, 150);
+
+// Marker for event adding
+let marker: Cube;
 
 // Object files
 let obj0: string = readTextFile('../obj_files/cylinder.obj');
@@ -44,7 +60,7 @@ function loadScene() {
   square.create();
 
   // Terrain
-  plane = new Plane(vec3.fromValues(0,-3,0), vec2.fromValues(150,150), 20);
+  plane = new Plane(vec3.fromValues(0,-3,0), dimensions, 20);
   plane.create();
 
   // Instances
@@ -61,8 +77,34 @@ function loadScene() {
   hexagon = new Mesh(obj3, center);
   hexagon.create();
 
+  // Marker for event adding
+  marker = new Cube(vec3.fromValues(controls.eventXCoor, 0, controls.eventYCoor));
+  marker.create();
+
   simulation = new Simulation(75, plane.scale, 0, controls.buildingDensity * 5);
   planePos = vec2.fromValues(0,0);
+
+  // Initial call to instanced rendering
+  instanceRendering();
+
+  // Initial call to building rendering
+  createBuildings();
+
+  // Initial call to marker creation
+  setMarker();
+}
+
+function addEvent() {
+  if (!simulation.doesEventExist(controls.eventName)) {
+    simulation.addEvent(vec3.fromValues(controls.eventXCoor, 0, controls.eventYCoor),
+     controls.eventKeyword, controls.eventName, controls.eventScope);
+  }
+}
+
+function removeEvent() {
+  if (simulation.events.length > 0 && simulation.doesEventExist(controls.eventToRemove)) {
+    simulation.removeEvent(controls.eventToRemove);
+  }
 }
 
 function instanceRendering() {
@@ -236,6 +278,21 @@ function createBuildings() {
   hexagon.setNumInstances(numH);
 }
 
+function setMarker() {
+  let t0Array = [1, 0, 0, 0]; // col0 array
+  let t1Array = [0, 1, 0, 0]; // col1 array
+  let t2Array = [0, 0, 1, 0]; // col2 array
+  let t3Array = [controls.eventXCoor, 0, controls.eventYCoor, 1]; // col2 array
+  let colorsArray = [0, 1, 0, 1]; // colors array
+  let t0: Float32Array = new Float32Array(t0Array);
+  let t1: Float32Array = new Float32Array(t1Array);
+  let t2: Float32Array = new Float32Array(t2Array);
+  let t3: Float32Array = new Float32Array(t3Array);
+  let colors: Float32Array = new Float32Array(colorsArray);
+  marker.setInstanceVBOs(t0, t1, t2, t3, colors);
+  marker.setNumInstances(1);
+}
+
 function main() {
 
   // Initial display for framerate
@@ -248,7 +305,18 @@ function main() {
 
   // Add controls to the gui
   const gui = new DAT.GUI();
-
+  gui.add(controls, 'Load Scene');
+  gui.add(controls, 'buildingDensity', 0, 7).step(1);
+  var eventAdd = gui.addFolder('Add Event');
+  eventAdd.add(controls, 'eventKeyword', [ 'food', 'concert', 'sports', 'protest', 'exposition' ]);
+  eventAdd.add(controls, 'eventXCoor', - dimensions[0] / 2, dimensions[0] / 2).step(0.1);
+  eventAdd.add(controls, 'eventYCoor', - dimensions[1] / 2, dimensions[1] / 2).step(0.1);
+  eventAdd.add(controls, 'eventScope', 5, 100).step(5);
+  eventAdd.add(controls, 'eventName');
+  eventAdd.add(controls, 'Add Event');
+  var eventRemove = gui.addFolder('Remove Event');
+  eventRemove.add(controls, 'eventToRemove');
+  eventRemove.add(controls, 'Remove Event');
   // get canvas and webgl context
   const canvas = <HTMLCanvasElement> document.getElementById('canvas');
   const gl = <WebGL2RenderingContext> canvas.getContext('webgl2');
@@ -261,12 +329,6 @@ function main() {
 
   // Initial call to load scene
   loadScene();
-
-  // Initial call to instanced rendering
-  instanceRendering();
-
-  // Initial call to building rendering
-  createBuildings();
 
   const camera = new Camera(vec3.fromValues(0, 30, -20), vec3.fromValues(0, 0, 0));
 
@@ -299,6 +361,18 @@ function main() {
     instanceRendering();
     renderer.clear();
     lambert.setMode(1.0);
+    if (controls.buildingDensity != prevBuildingDensity) {
+      prevBuildingDensity = controls.buildingDensity;
+      loadScene();
+    }
+    if (controls.eventXCoor != prevX) {
+      prevX = controls.eventXCoor;
+      setMarker();
+    }
+    if (controls.eventYCoor != prevY) {
+      prevY = controls.eventYCoor;
+      setMarker();
+    }
     renderer.render(camera, lambert, [
       plane,
     ], time, 0);
@@ -308,7 +382,7 @@ function main() {
     ], time, 0);
     lambert.setMode(0.0);
     renderer.render(camera, lambert, [
-      agent, cube, pentagon, hexagon,
+      agent, cube, pentagon, hexagon, marker,
     ], time, 1);
     simulation.simulationStep(10); // simulation step
     stats.end();

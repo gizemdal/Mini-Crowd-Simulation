@@ -9,7 +9,7 @@ function getRandomInt(max: number) {
   return Math.floor(Math.random() * Math.floor(max));
 }
 
-let eventKeywords = ["food", "concert", "sports", "protest", "exposition"];
+let eventKeywords = ['food', 'concert', 'sports', 'protest', 'exposition'];
 let minHeight = 5; // minimum height for buildings
 let maxHeight = 30; // maximum height for buildings
 let rad = 5; // radius for building occupance
@@ -29,6 +29,7 @@ export default class Simulation {
 		this.agents = [];
 		this.buildings = [];
 		this.markers = [];
+		this.events = [];
 		this.locationMap = new Array(d[0]).fill(0).map(() => new Array(d[1]).fill(0));
 		this.numAgents = n;
 		this.dimensions = d;
@@ -168,6 +169,7 @@ export default class Simulation {
 					continue;
 				}
 				var ang = angle(vecM, destM);
+
 				// calculate the weight
 				var w = Math.abs(1 + Math.cos(ang) / (1 + lM));
 				if (w > maxWeight) {
@@ -187,16 +189,66 @@ export default class Simulation {
 				this.locationMap[this.markers[closestMarker].pos[0] + this.dimensions[0] / 2][this.markers[closestMarker].pos[2] + this.dimensions[1] / 2] = this.agents[a].getId();
 			} else {
 				// if no possible movement found and there is no event, assign a new destination
-				this.agents[a].changeDest(this.markers[getRandomInt(this.markers.length)].pos);
+				if (this.events.length != 0 && this.agents[a].interests.length != 0) {
+					if (this.agents[a].currentEvent == -1) {
+						this.agents[a].changeDest(this.markers[getRandomInt(this.markers.length)].pos);
+					}
+				} else {
+					this.agents[a].changeDest(this.markers[getRandomInt(this.markers.length)].pos);
+				}
 			}
 		}
 	}
 
-	// change the goal destination of the crowd (for this milestone, this applies to whole crowd)
-	changeDestination(dest: vec3) {
-		for (let a of this.agents) {
-			a.changeDest(dest);
+	// Add an event to the city
+	addEvent(pos: vec3, keyword: string, name: string, scope: number = 20) {
+		if (this.locationMap[pos[0] + this.dimensions[0] / 2][pos[2] + this.dimensions[1] / 2] != -1) {
+			var keys = [];
+			keys.push(keyword);
+			var newEvent = new Event(pos, scope, keys, name);
+			this.events.push(newEvent);
+			this.changeDestination(); // update the destinations
+			return 1;
+		} else {
+			return -1; // unsuccesful!
 		}
+	}
+
+	// Remove the event associated with the given id
+	removeEvent(n: string) {
+		var id = 0;
+		for (let e of this.events) {
+			if (e.name === n) {
+				id = e.id;
+				break;
+			}
+		}
+		this.events.splice(id, 1);
+		this.changeDestination(); // update the destinations
+	}
+
+	// change the goal destination of the crowd
+	changeDestination() {
+		for (let a of this.agents) {
+			var related = this.events.filter(event => a.interests.some(interest => event.keywords.indexOf(interest) >= 0));
+			if (related.length != 0) {
+				var rand = related[getRandomInt(related.length)];
+				a.changeDest(rand.pos);
+				a.updateCurrentEvent(rand.id);
+			} else {
+				a.updateCurrentEvent(-1); // agent has no events interested
+			}
+		}
+	}
+
+	// Check if an event already exists with a given name
+	doesEventExist(n: string) {
+		for (let e of this.events) {
+			if (e.name === n) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	// Get the agent array
