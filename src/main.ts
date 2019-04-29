@@ -359,16 +359,6 @@ function main() {
   ]);
   lambert.setDimensions(plane.scale);
 
-  const flat = new ShaderProgram([
-    new Shader(gl.VERTEX_SHADER, require('./shaders/flat-vert.glsl')),
-    new Shader(gl.FRAGMENT_SHADER, require('./shaders/flat-frag.glsl')),
-  ]);
-
-  const instanced = new ShaderProgram([
-    new Shader(gl.VERTEX_SHADER, require('./shaders/instanced-vert.glsl')),
-    new Shader(gl.FRAGMENT_SHADER, require('./shaders/instanced-frag.glsl')),
-  ]);
-
   // This function will be called every frame
   function tick() {
     camera.update();
@@ -416,7 +406,6 @@ function main() {
   renderer.setSize(window.innerWidth, window.innerHeight);
   camera.setAspectRatio(window.innerWidth / window.innerHeight);
   camera.updateProjectionMatrix();
-  flat.setDimensions(vec2.fromValues(window.innerWidth, window.innerHeight));
   // Start the render loop
   tick();
 }
