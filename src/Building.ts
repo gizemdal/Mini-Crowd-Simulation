@@ -26,7 +26,7 @@ export default class Building {
 	addFloor(i: number, m: mat4) {
 		this.instances.push(i);
 		this.transforms.push(m);
-		this.remainingHeight -= 1.0;
+		this.remainingHeight -= 2.0;
 	}
 
 	// Check if the building has reached the floor

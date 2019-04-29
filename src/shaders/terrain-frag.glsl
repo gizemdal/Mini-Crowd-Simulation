@@ -101,8 +101,12 @@ void main()
     // 	float colZ = clamp(difference, 0.0, 1.0); // b value
     // 	out_Col = vec4(colX, colY, colZ, 1.0);
     // }
-    if (u_Mode == 0.0 || u_Mode == 1.0) {
+    if (u_Mode == 0.0) {
         out_Col = fs_Col;
+    } else if (u_Mode == 1.0) {
+        //out_Col = fs_Col;
+        float c = 0.6 * fbm(vec2(fs_Pos.x*0.05, fs_Pos.z*0.05), 3);
+        out_Col = vec4(vec3(c), 1.0);
     } else if (u_Mode == 2.0) {
         float t = u_Time * 0.005;
         vec2 st = gl_FragCoord.xy/u_Dimensions.xy*3.;

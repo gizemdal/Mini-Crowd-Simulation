@@ -45,14 +45,16 @@ let hexagon: Mesh; // hexagon for buildings
 let dimensions: vec2 = vec2.fromValues(150, 150);
 
 // Marker for event adding
-let marker: Cube;
+let marker: Mesh;
+
+// Pins for existing events
+let pins: Mesh[] = [];
 
 // Object files
 let obj0: string = readTextFile('../obj_files/cylinder.obj');
 let obj1: string = readTextFile('../obj_files/cube.obj');
 let obj2: string = readTextFile('../obj_files/pentagon.obj');
 let obj3: string = readTextFile('../obj_files/hex.obj');
-
 
 function loadScene() {
   // Background
@@ -78,7 +80,7 @@ function loadScene() {
   hexagon.create();
 
   // Marker for event adding
-  marker = new Cube(vec3.fromValues(controls.eventXCoor, 0, controls.eventYCoor));
+  marker = new Mesh(obj0, vec3.fromValues(controls.eventXCoor, 0, controls.eventYCoor));
   marker.create();
 
   simulation = new Simulation(75, plane.scale, 0, controls.buildingDensity * 5);
@@ -309,8 +311,8 @@ function main() {
   gui.add(controls, 'buildingDensity', 0, 7).step(1);
   var eventAdd = gui.addFolder('Add Event');
   eventAdd.add(controls, 'eventKeyword', [ 'food', 'concert', 'sports', 'protest', 'exposition' ]);
-  eventAdd.add(controls, 'eventXCoor', - dimensions[0] / 2, dimensions[0] / 2).step(0.1);
-  eventAdd.add(controls, 'eventYCoor', - dimensions[1] / 2, dimensions[1] / 2).step(0.1);
+  eventAdd.add(controls, 'eventXCoor', - dimensions[0] / 2 + 5, dimensions[0] / 2 - 5).step(0.1);
+  eventAdd.add(controls, 'eventYCoor', - dimensions[1] / 2 + 5, dimensions[1] / 2 - 5).step(0.1);
   eventAdd.add(controls, 'eventScope', 5, 100).step(5);
   eventAdd.add(controls, 'eventName');
   eventAdd.add(controls, 'Add Event');

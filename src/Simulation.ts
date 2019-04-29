@@ -202,7 +202,9 @@ export default class Simulation {
 
 	// Add an event to the city
 	addEvent(pos: vec3, keyword: string, name: string, scope: number = 20) {
-		if (this.locationMap[pos[0] + this.dimensions[0] / 2][pos[2] + this.dimensions[1] / 2] != -1) {
+		if (this.locationMap[Math.floor(pos[0] + this.dimensions[0] / 2)]
+			[Math.floor(pos[2] + this.dimensions[1] / 2)] != -1) {
+			console.log('added!');
 			var keys = [];
 			keys.push(keyword);
 			var newEvent = new Event(pos, scope, keys, name);
@@ -219,9 +221,9 @@ export default class Simulation {
 		var id = 0;
 		for (let e of this.events) {
 			if (e.name === n) {
-				id = e.id;
 				break;
 			}
+			id++;
 		}
 		this.events.splice(id, 1);
 		this.changeDestination(); // update the destinations
