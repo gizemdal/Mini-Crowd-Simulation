@@ -308,9 +308,10 @@ class Drawable {
         this.t2Bound = false;
         this.t3Bound = false;
         this.uvBound = false;
+        this.typeBound = false;
         this.numInstances = 0; // How many instances of this Drawable the shader program should draw
     }
-    destory() {
+    destroy() {
         __WEBPACK_IMPORTED_MODULE_0__globals__["a" /* gl */].deleteBuffer(this.bufIdx);
         __WEBPACK_IMPORTED_MODULE_0__globals__["a" /* gl */].deleteBuffer(this.bufPos);
         __WEBPACK_IMPORTED_MODULE_0__globals__["a" /* gl */].deleteBuffer(this.bufNor);
@@ -320,6 +321,7 @@ class Drawable {
         __WEBPACK_IMPORTED_MODULE_0__globals__["a" /* gl */].deleteBuffer(this.bufT2);
         __WEBPACK_IMPORTED_MODULE_0__globals__["a" /* gl */].deleteBuffer(this.bufT3);
         __WEBPACK_IMPORTED_MODULE_0__globals__["a" /* gl */].deleteBuffer(this.bufUV);
+        __WEBPACK_IMPORTED_MODULE_0__globals__["a" /* gl */].deleteBuffer(this.bufType);
     }
     generateIdx() {
         this.idxBound = true;
@@ -356,6 +358,10 @@ class Drawable {
     generateUV() {
         this.uvBound = true;
         this.bufUV = __WEBPACK_IMPORTED_MODULE_0__globals__["a" /* gl */].createBuffer();
+    }
+    generateType() {
+        this.typeBound = true;
+        this.bufType = __WEBPACK_IMPORTED_MODULE_0__globals__["a" /* gl */].createBuffer();
     }
     bindIdx() {
         if (this.idxBound) {
@@ -410,6 +416,12 @@ class Drawable {
             __WEBPACK_IMPORTED_MODULE_0__globals__["a" /* gl */].bindBuffer(__WEBPACK_IMPORTED_MODULE_0__globals__["a" /* gl */].ARRAY_BUFFER, this.bufUV);
         }
         return this.uvBound;
+    }
+    bindType() {
+        if (this.typeBound) {
+            __WEBPACK_IMPORTED_MODULE_0__globals__["a" /* gl */].bindBuffer(__WEBPACK_IMPORTED_MODULE_0__globals__["a" /* gl */].ARRAY_BUFFER, this.bufType);
+        }
+        return this.typeBound;
     }
     elemCount() {
         return this.count;
@@ -6733,7 +6745,8 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_7__Camera__ = __webpack_require__(55);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_8__Simulation__ = __webpack_require__(79);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_9__globals__ = __webpack_require__(2);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_10__rendering_gl_ShaderProgram__ = __webpack_require__(127);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_10__rendering_gl_ShaderProgram__ = __webpack_require__(130);
+
 
 
 
@@ -6748,34 +6761,77 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 // Define an object with application parameters and button callbacks
 // This will be referred to by dat.GUI's functions that add GUI elements.
 const controls = {
-    tesselations: 5,
     'Load Scene': loadScene,
+    buildingDensity: 5,
+    eventKeyword: 'food',
+    eventXCoor: 0,
+    eventYCoor: 0,
+    eventScope: 10,
+    eventName: 'default',
+    'Add Event': addEvent,
+    eventToRemove: 'default',
+    'Remove Event': removeEvent,
 };
 let square;
 let plane;
-let wPressed;
-let aPressed;
-let sPressed;
-let dPressed;
 let planePos;
+let prevBuildingDensity = 5;
+let prevX = 0;
+let prevY = 0;
 let time = 0.0;
-let agent;
+let agent; // agent instance
 let simulation; // simulation instance
+let cube; // cube for buildings
+let pentagon; // pentagon for buildings
+let hexagon; // hexagon for buildings
+let dimensions = __WEBPACK_IMPORTED_MODULE_0_gl_matrix__["b" /* vec2 */].fromValues(150, 150);
+// Marker for event adding
+let marker;
+// Pins for existing events
+let pins = [];
+// Object files
 let obj0 = Object(__WEBPACK_IMPORTED_MODULE_9__globals__["b" /* readTextFile */])('../obj_files/cylinder.obj');
+let obj1 = Object(__WEBPACK_IMPORTED_MODULE_9__globals__["b" /* readTextFile */])('../obj_files/cube.obj');
+let obj2 = Object(__WEBPACK_IMPORTED_MODULE_9__globals__["b" /* readTextFile */])('../obj_files/pentagon.obj');
+let obj3 = Object(__WEBPACK_IMPORTED_MODULE_9__globals__["b" /* readTextFile */])('../obj_files/hex.obj');
 function loadScene() {
+    // Background
     square = new __WEBPACK_IMPORTED_MODULE_3__geometry_Square__["a" /* default */](__WEBPACK_IMPORTED_MODULE_0_gl_matrix__["c" /* vec3 */].fromValues(0, 0, 0));
     square.create();
-    plane = new __WEBPACK_IMPORTED_MODULE_4__geometry_Plane__["a" /* default */](__WEBPACK_IMPORTED_MODULE_0_gl_matrix__["c" /* vec3 */].fromValues(0, 0, 0), __WEBPACK_IMPORTED_MODULE_0_gl_matrix__["b" /* vec2 */].fromValues(1000, 1000), 20);
+    // Terrain
+    plane = new __WEBPACK_IMPORTED_MODULE_4__geometry_Plane__["a" /* default */](__WEBPACK_IMPORTED_MODULE_0_gl_matrix__["c" /* vec3 */].fromValues(0, -3, 0), dimensions, 20);
     plane.create();
+    // Instances
     let center = __WEBPACK_IMPORTED_MODULE_0_gl_matrix__["c" /* vec3 */].fromValues(0.0, 0.0, 0.0);
     agent = new __WEBPACK_IMPORTED_MODULE_5__geometry_Mesh__["a" /* default */](obj0, center); // the agent instance
     agent.create();
-    simulation = new __WEBPACK_IMPORTED_MODULE_8__Simulation__["a" /* default */](1000, plane.scale, 0);
-    wPressed = false;
-    aPressed = false;
-    sPressed = false;
-    dPressed = false;
+    cube = new __WEBPACK_IMPORTED_MODULE_5__geometry_Mesh__["a" /* default */](obj1, center);
+    cube.create();
+    pentagon = new __WEBPACK_IMPORTED_MODULE_5__geometry_Mesh__["a" /* default */](obj2, center);
+    pentagon.create();
+    hexagon = new __WEBPACK_IMPORTED_MODULE_5__geometry_Mesh__["a" /* default */](obj3, center);
+    hexagon.create();
+    // Marker for event adding
+    marker = new __WEBPACK_IMPORTED_MODULE_5__geometry_Mesh__["a" /* default */](obj0, __WEBPACK_IMPORTED_MODULE_0_gl_matrix__["c" /* vec3 */].fromValues(controls.eventXCoor, 0, controls.eventYCoor));
+    marker.create();
+    simulation = new __WEBPACK_IMPORTED_MODULE_8__Simulation__["a" /* default */](75, plane.scale, 0, controls.buildingDensity * 5);
     planePos = __WEBPACK_IMPORTED_MODULE_0_gl_matrix__["b" /* vec2 */].fromValues(0, 0);
+    // Initial call to instanced rendering
+    instanceRendering();
+    // Initial call to building rendering
+    createBuildings();
+    // Initial call to marker creation
+    setMarker();
+}
+function addEvent() {
+    if (!simulation.doesEventExist(controls.eventName)) {
+        simulation.addEvent(__WEBPACK_IMPORTED_MODULE_0_gl_matrix__["c" /* vec3 */].fromValues(controls.eventXCoor, 0, controls.eventYCoor), controls.eventKeyword, controls.eventName, controls.eventScope);
+    }
+}
+function removeEvent() {
+    if (simulation.events.length > 0 && simulation.doesEventExist(controls.eventToRemove)) {
+        simulation.removeEvent(controls.eventToRemove);
+    }
 }
 function instanceRendering() {
     // generate the agents
@@ -6785,6 +6841,7 @@ function instanceRendering() {
     let t2Array = []; // col2 array for agent
     let t3Array = []; // col2 array for agent
     let colorsArray = []; // colors array for agent
+    let typeArray = []; // type array for agent
     let n = agents.length; // number of agent instances
     for (let i = 0; i < n; i++) {
         var a = agents[i];
@@ -6806,53 +6863,166 @@ function instanceRendering() {
         t3Array.push(mat[13]);
         t3Array.push(mat[14]);
         t3Array.push(mat[15]);
-        colorsArray.push(1.0);
-        colorsArray.push(1.0);
-        colorsArray.push(1.0);
+        colorsArray.push(a.col[0]);
+        colorsArray.push(a.col[1]);
+        colorsArray.push(a.col[2]);
         colorsArray.push(1.0); // Alpha channel
+        typeArray.push(1.0);
     }
     let t0 = new Float32Array(t0Array);
     let t1 = new Float32Array(t1Array);
     let t2 = new Float32Array(t2Array);
     let t3 = new Float32Array(t3Array);
     let colors = new Float32Array(colorsArray);
-    agent.setInstanceVBOs(t0, t1, t2, t3, colors);
+    let types = new Float32Array(typeArray);
+    agent.setInstanceVBOs(t0, t1, t2, t3, colors, types);
     agent.setNumInstances(n);
 }
+function createBuildings() {
+    let buildingIdx = simulation.getBuildingIndices();
+    let buildingMat = simulation.getBuildingMatrices();
+    let t0CArray = []; // col0 array for cube
+    let t1CArray = []; // col1 array for cube
+    let t2CArray = []; // col2 array for cube
+    let t3CArray = []; // col2 array for cube
+    let colorsCArray = []; // colors array for cube
+    let typeCArray = []; // type array for cube
+    let t0PArray = []; // col0 array for pentagon
+    let t1PArray = []; // col1 array for pentagon
+    let t2PArray = []; // col2 array for pentagon
+    let t3PArray = []; // col2 array for pentagon
+    let colorsPArray = []; // colors array for pentagon
+    let typePArray = []; // type array for pentagon
+    let t0HArray = []; // col0 array for hexagon
+    let t1HArray = []; // col1 array for hexagon
+    let t2HArray = []; // col2 array for hextagon
+    let t3HArray = []; // col2 array for hexagon
+    let colorsHArray = []; // colors array for hexagon
+    let typeHArray = []; // type array for hexagon
+    let numC = 0; // number of cubes
+    let numP = 0; // number of pentagons
+    let numH = 0; // number of hexagons
+    // cube = 0, pentagon = 1, hexagon = 2
+    for (var i = 0; i < buildingIdx.length; i++) {
+        var mat = buildingMat[i];
+        if (buildingIdx[i] == 0) {
+            t0CArray.push(mat[0]);
+            t0CArray.push(mat[1]);
+            t0CArray.push(mat[2]);
+            t0CArray.push(mat[3]);
+            t1CArray.push(mat[4]);
+            t1CArray.push(mat[5]);
+            t1CArray.push(mat[6]);
+            t1CArray.push(mat[7]);
+            t2CArray.push(mat[8]);
+            t2CArray.push(mat[9]);
+            t2CArray.push(mat[10]);
+            t2CArray.push(mat[11]);
+            t3CArray.push(mat[12]);
+            t3CArray.push(mat[13]);
+            t3CArray.push(mat[14]);
+            t3CArray.push(mat[15]);
+            colorsCArray.push(1.0);
+            colorsCArray.push(0.0);
+            colorsCArray.push(1.0);
+            colorsCArray.push(1.0);
+            typeCArray.push(3.0);
+            numC++;
+        }
+        else if (buildingIdx[i] == 1) {
+            t0PArray.push(mat[0]);
+            t0PArray.push(mat[1]);
+            t0PArray.push(mat[2]);
+            t0PArray.push(mat[3]);
+            t1PArray.push(mat[4]);
+            t1PArray.push(mat[5]);
+            t1PArray.push(mat[6]);
+            t1PArray.push(mat[7]);
+            t2PArray.push(mat[8]);
+            t2PArray.push(mat[9]);
+            t2PArray.push(mat[10]);
+            t2PArray.push(mat[11]);
+            t3PArray.push(mat[12]);
+            t3PArray.push(mat[13]);
+            t3PArray.push(mat[14]);
+            t3PArray.push(mat[15]);
+            colorsPArray.push(0.0);
+            colorsPArray.push(0.0);
+            colorsPArray.push(1.0);
+            colorsPArray.push(1.0);
+            typePArray.push(3.0);
+            numP++;
+        }
+        else if (buildingIdx[i] == 2) {
+            t0HArray.push(mat[0]);
+            t0HArray.push(mat[1]);
+            t0HArray.push(mat[2]);
+            t0HArray.push(mat[3]);
+            t1HArray.push(mat[4]);
+            t1HArray.push(mat[5]);
+            t1HArray.push(mat[6]);
+            t1HArray.push(mat[7]);
+            t2HArray.push(mat[8]);
+            t2HArray.push(mat[9]);
+            t2HArray.push(mat[10]);
+            t2HArray.push(mat[11]);
+            t3HArray.push(mat[12]);
+            t3HArray.push(mat[13]);
+            t3HArray.push(mat[14]);
+            t3HArray.push(mat[15]);
+            colorsHArray.push(1.0);
+            colorsHArray.push(1.0);
+            colorsHArray.push(0.0);
+            colorsHArray.push(1.0);
+            typeHArray.push(3.0);
+            numH++;
+        }
+    }
+    // create cube instances
+    let t0Cube = new Float32Array(t0CArray);
+    let t1Cube = new Float32Array(t1CArray);
+    let t2Cube = new Float32Array(t2CArray);
+    let t3Cube = new Float32Array(t3CArray);
+    let colCube = new Float32Array(colorsCArray);
+    let typeCube = new Float32Array(typeCArray);
+    cube.setInstanceVBOs(t0Cube, t1Cube, t2Cube, t3Cube, colCube, typeCube);
+    cube.setNumInstances(numC);
+    // create pentagon instances
+    let t0Pen = new Float32Array(t0PArray);
+    let t1Pen = new Float32Array(t1PArray);
+    let t2Pen = new Float32Array(t2PArray);
+    let t3Pen = new Float32Array(t3PArray);
+    let colPen = new Float32Array(colorsPArray);
+    let typePen = new Float32Array(typePArray);
+    pentagon.setInstanceVBOs(t0Pen, t1Pen, t2Pen, t3Pen, colPen, typePen);
+    pentagon.setNumInstances(numP);
+    // create hex instances
+    let t0Hex = new Float32Array(t0HArray);
+    let t1Hex = new Float32Array(t1HArray);
+    let t2Hex = new Float32Array(t2HArray);
+    let t3Hex = new Float32Array(t3HArray);
+    let colHex = new Float32Array(colorsHArray);
+    let typeHex = new Float32Array(typeHArray);
+    hexagon.setInstanceVBOs(t0Hex, t1Hex, t2Hex, t3Hex, colHex, typeHex);
+    hexagon.setNumInstances(numH);
+}
+function setMarker() {
+    let t0Array = [1, 0, 0, 0]; // col0 array
+    let t1Array = [0, 1, 0, 0]; // col1 array
+    let t2Array = [0, 0, 1, 0]; // col2 array
+    let t3Array = [controls.eventXCoor, 0, controls.eventYCoor, 1]; // col2 array
+    let colorsArray = [0, 1, 0, 1]; // colors array
+    let typesArray = [2];
+    let t0 = new Float32Array(t0Array);
+    let t1 = new Float32Array(t1Array);
+    let t2 = new Float32Array(t2Array);
+    let t3 = new Float32Array(t3Array);
+    let colors = new Float32Array(colorsArray);
+    let types = new Float32Array(typesArray);
+    marker.setInstanceVBOs(t0, t1, t2, t3, colors, types);
+    marker.setNumInstances(1);
+}
 function main() {
-    window.addEventListener('keypress', function (e) {
-        // console.log(e.key);
-        switch (e.key) {
-            case 'w':
-                wPressed = true;
-                break;
-            case 'a':
-                aPressed = true;
-                break;
-            case 's':
-                sPressed = true;
-                break;
-            case 'd':
-                dPressed = true;
-                break;
-        }
-    }, false);
-    window.addEventListener('keyup', function (e) {
-        switch (e.key) {
-            case 'w':
-                wPressed = false;
-                break;
-            case 'a':
-                aPressed = false;
-                break;
-            case 's':
-                sPressed = false;
-                break;
-            case 'd':
-                dPressed = false;
-                break;
-        }
-    }, false);
     // Initial display for framerate
     const stats = __WEBPACK_IMPORTED_MODULE_1_stats_js__();
     stats.setMode(0);
@@ -6862,6 +7032,18 @@ function main() {
     document.body.appendChild(stats.domElement);
     // Add controls to the gui
     const gui = new __WEBPACK_IMPORTED_MODULE_2_dat_gui__["GUI"]();
+    gui.add(controls, 'Load Scene');
+    gui.add(controls, 'buildingDensity', 0, 7).step(1);
+    var eventAdd = gui.addFolder('Add Event');
+    eventAdd.add(controls, 'eventKeyword', ['food', 'concert', 'sports', 'protest', 'exposition']);
+    eventAdd.add(controls, 'eventXCoor', -dimensions[0] / 2 + 5, dimensions[0] / 2 - 5).step(0.1);
+    eventAdd.add(controls, 'eventYCoor', -dimensions[1] / 2 + 5, dimensions[1] / 2 - 5).step(0.1);
+    eventAdd.add(controls, 'eventScope', 5, 100).step(5);
+    eventAdd.add(controls, 'eventName');
+    eventAdd.add(controls, 'Add Event');
+    var eventRemove = gui.addFolder('Remove Event');
+    eventRemove.add(controls, 'eventToRemove');
+    eventRemove.add(controls, 'Remove Event');
     // get canvas and webgl context
     const canvas = document.getElementById('canvas');
     const gl = canvas.getContext('webgl2');
@@ -6873,62 +7055,48 @@ function main() {
     Object(__WEBPACK_IMPORTED_MODULE_9__globals__["c" /* setGL */])(gl);
     // Initial call to load scene
     loadScene();
-    // Initial call to instanced rendering
-    instanceRendering();
     const camera = new __WEBPACK_IMPORTED_MODULE_7__Camera__["a" /* default */](__WEBPACK_IMPORTED_MODULE_0_gl_matrix__["c" /* vec3 */].fromValues(0, 30, -20), __WEBPACK_IMPORTED_MODULE_0_gl_matrix__["c" /* vec3 */].fromValues(0, 0, 0));
     const renderer = new __WEBPACK_IMPORTED_MODULE_6__rendering_gl_OpenGLRenderer__["a" /* default */](canvas);
-    renderer.setClearColor(164.0 / 255.0, 233.0 / 255.0, 1.0, 1);
+    //renderer.setClearColor(164.0 / 255.0, 233.0 / 255.0, 1.0, 1);
+    renderer.setClearColor(0.0, 0.0, 0.0, 1);
     gl.enable(gl.DEPTH_TEST);
     const lambert = new __WEBPACK_IMPORTED_MODULE_10__rendering_gl_ShaderProgram__["b" /* default */]([
-        new __WEBPACK_IMPORTED_MODULE_10__rendering_gl_ShaderProgram__["a" /* Shader */](gl.VERTEX_SHADER, __webpack_require__(128)),
-        new __WEBPACK_IMPORTED_MODULE_10__rendering_gl_ShaderProgram__["a" /* Shader */](gl.FRAGMENT_SHADER, __webpack_require__(129)),
+        new __WEBPACK_IMPORTED_MODULE_10__rendering_gl_ShaderProgram__["a" /* Shader */](gl.VERTEX_SHADER, __webpack_require__(131)),
+        new __WEBPACK_IMPORTED_MODULE_10__rendering_gl_ShaderProgram__["a" /* Shader */](gl.FRAGMENT_SHADER, __webpack_require__(132)),
     ]);
     lambert.setDimensions(plane.scale);
-    const flat = new __WEBPACK_IMPORTED_MODULE_10__rendering_gl_ShaderProgram__["b" /* default */]([
-        new __WEBPACK_IMPORTED_MODULE_10__rendering_gl_ShaderProgram__["a" /* Shader */](gl.VERTEX_SHADER, __webpack_require__(130)),
-        new __WEBPACK_IMPORTED_MODULE_10__rendering_gl_ShaderProgram__["a" /* Shader */](gl.FRAGMENT_SHADER, __webpack_require__(131)),
-    ]);
-    const instanced = new __WEBPACK_IMPORTED_MODULE_10__rendering_gl_ShaderProgram__["b" /* default */]([
-        new __WEBPACK_IMPORTED_MODULE_10__rendering_gl_ShaderProgram__["a" /* Shader */](gl.VERTEX_SHADER, __webpack_require__(132)),
-        new __WEBPACK_IMPORTED_MODULE_10__rendering_gl_ShaderProgram__["a" /* Shader */](gl.FRAGMENT_SHADER, __webpack_require__(133)),
-    ]);
-    function processKeyPresses() {
-        let velocity = __WEBPACK_IMPORTED_MODULE_0_gl_matrix__["b" /* vec2 */].fromValues(0, 0);
-        if (wPressed) {
-            velocity[1] += 1.0;
-        }
-        if (aPressed) {
-            velocity[0] += 1.0;
-        }
-        if (sPressed) {
-            velocity[1] -= 1.0;
-        }
-        if (dPressed) {
-            velocity[0] -= 1.0;
-        }
-        let newPos = __WEBPACK_IMPORTED_MODULE_0_gl_matrix__["b" /* vec2 */].fromValues(0, 0);
-        __WEBPACK_IMPORTED_MODULE_0_gl_matrix__["b" /* vec2 */].add(newPos, velocity, planePos);
-        lambert.setPlanePos(newPos);
-        planePos = newPos;
-    }
     // This function will be called every frame
     function tick() {
         camera.update();
         stats.begin();
         gl.viewport(0, 0, window.innerWidth, window.innerHeight);
+        instanceRendering();
         renderer.clear();
-        processKeyPresses();
+        lambert.setMode(1.0);
+        if (controls.buildingDensity != prevBuildingDensity) {
+            prevBuildingDensity = controls.buildingDensity;
+            loadScene();
+        }
+        if (controls.eventXCoor != prevX) {
+            prevX = controls.eventXCoor;
+            setMarker();
+        }
+        if (controls.eventYCoor != prevY) {
+            prevY = controls.eventYCoor;
+            setMarker();
+        }
         renderer.render(camera, lambert, [
             plane,
-        ], time);
-        renderer.render(camera, flat, [
+        ], time, 0);
+        lambert.setMode(2.0);
+        renderer.render(camera, lambert, [
             square,
-        ], time);
-        renderer.render(camera, instanced, [
-            agent,
-        ], time);
-        simulation.simulationStep(); // simulation step
-        instanceRendering();
+        ], time, 0);
+        lambert.setMode(0.0);
+        renderer.render(camera, lambert, [
+            agent, cube, pentagon, hexagon, marker,
+        ], time, 1);
+        simulation.simulationStep(10); // simulation step
         stats.end();
         // Tell the browser to call `tick` again whenever it renders a new frame
         time += 1.0;
@@ -6942,7 +7110,6 @@ function main() {
     renderer.setSize(window.innerWidth, window.innerHeight);
     camera.setAspectRatio(window.innerWidth / window.innerHeight);
     camera.updateProjectionMatrix();
-    flat.setDimensions(__WEBPACK_IMPORTED_MODULE_0_gl_matrix__["b" /* vec2 */].fromValues(window.innerWidth, window.innerHeight));
     // Start the render loop
     tick();
 }
@@ -14108,6 +14275,7 @@ class Mesh extends __WEBPACK_IMPORTED_MODULE_1__rendering_gl_Drawable__["a" /* d
         this.generateT1();
         this.generateT2();
         this.generateT3();
+        this.generateType();
         this.count = this.indices.length;
         __WEBPACK_IMPORTED_MODULE_2__globals__["a" /* gl */].bindBuffer(__WEBPACK_IMPORTED_MODULE_2__globals__["a" /* gl */].ELEMENT_ARRAY_BUFFER, this.bufIdx);
         __WEBPACK_IMPORTED_MODULE_2__globals__["a" /* gl */].bufferData(__WEBPACK_IMPORTED_MODULE_2__globals__["a" /* gl */].ELEMENT_ARRAY_BUFFER, this.indices, __WEBPACK_IMPORTED_MODULE_2__globals__["a" /* gl */].STATIC_DRAW);
@@ -14120,12 +14288,13 @@ class Mesh extends __WEBPACK_IMPORTED_MODULE_1__rendering_gl_Drawable__["a" /* d
         console.log(`Created Mesh from OBJ`);
         this.objString = ""; // hacky clear
     }
-    setInstanceVBOs(t0, t1, t2, t3, colors) {
+    setInstanceVBOs(t0, t1, t2, t3, colors, type) {
         this.colors = colors;
         this.t0 = t0;
         this.t1 = t1;
         this.t2 = t2;
         this.t3 = t3;
+        this.types = type;
         __WEBPACK_IMPORTED_MODULE_2__globals__["a" /* gl */].bindBuffer(__WEBPACK_IMPORTED_MODULE_2__globals__["a" /* gl */].ARRAY_BUFFER, this.bufCol);
         __WEBPACK_IMPORTED_MODULE_2__globals__["a" /* gl */].bufferData(__WEBPACK_IMPORTED_MODULE_2__globals__["a" /* gl */].ARRAY_BUFFER, this.colors, __WEBPACK_IMPORTED_MODULE_2__globals__["a" /* gl */].STATIC_DRAW);
         __WEBPACK_IMPORTED_MODULE_2__globals__["a" /* gl */].bindBuffer(__WEBPACK_IMPORTED_MODULE_2__globals__["a" /* gl */].ARRAY_BUFFER, this.bufT0);
@@ -14136,6 +14305,8 @@ class Mesh extends __WEBPACK_IMPORTED_MODULE_1__rendering_gl_Drawable__["a" /* d
         __WEBPACK_IMPORTED_MODULE_2__globals__["a" /* gl */].bufferData(__WEBPACK_IMPORTED_MODULE_2__globals__["a" /* gl */].ARRAY_BUFFER, this.t2, __WEBPACK_IMPORTED_MODULE_2__globals__["a" /* gl */].STATIC_DRAW);
         __WEBPACK_IMPORTED_MODULE_2__globals__["a" /* gl */].bindBuffer(__WEBPACK_IMPORTED_MODULE_2__globals__["a" /* gl */].ARRAY_BUFFER, this.bufT3);
         __WEBPACK_IMPORTED_MODULE_2__globals__["a" /* gl */].bufferData(__WEBPACK_IMPORTED_MODULE_2__globals__["a" /* gl */].ARRAY_BUFFER, this.t3, __WEBPACK_IMPORTED_MODULE_2__globals__["a" /* gl */].STATIC_DRAW);
+        __WEBPACK_IMPORTED_MODULE_2__globals__["a" /* gl */].bindBuffer(__WEBPACK_IMPORTED_MODULE_2__globals__["a" /* gl */].ARRAY_BUFFER, this.bufType);
+        __WEBPACK_IMPORTED_MODULE_2__globals__["a" /* gl */].bufferData(__WEBPACK_IMPORTED_MODULE_2__globals__["a" /* gl */].ARRAY_BUFFER, this.types, __WEBPACK_IMPORTED_MODULE_2__globals__["a" /* gl */].STATIC_DRAW);
     }
 }
 ;
@@ -14172,7 +14343,7 @@ class OpenGLRenderer {
     clear() {
         __WEBPACK_IMPORTED_MODULE_1__globals__["a" /* gl */].clear(__WEBPACK_IMPORTED_MODULE_1__globals__["a" /* gl */].COLOR_BUFFER_BIT | __WEBPACK_IMPORTED_MODULE_1__globals__["a" /* gl */].DEPTH_BUFFER_BIT);
     }
-    render(camera, prog, drawables, time) {
+    render(camera, prog, drawables, time, type) {
         let model = __WEBPACK_IMPORTED_MODULE_0_gl_matrix__["a" /* mat4 */].create();
         let viewProj = __WEBPACK_IMPORTED_MODULE_0_gl_matrix__["a" /* mat4 */].create();
         let color = __WEBPACK_IMPORTED_MODULE_0_gl_matrix__["d" /* vec4 */].fromValues(1, 0, 0, 1);
@@ -14182,7 +14353,7 @@ class OpenGLRenderer {
         prog.setViewProjMatrix(viewProj);
         prog.setTime(time);
         for (let drawable of drawables) {
-            prog.draw(drawable);
+            prog.draw(drawable, type);
         }
     }
 }
@@ -16802,131 +16973,253 @@ module.exports = true;
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1_gl_vec3__ = __webpack_require__(80);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1_gl_vec3___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_1_gl_vec3__);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__Agent__ = __webpack_require__(112);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__Event__ = __webpack_require__(127);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__Building__ = __webpack_require__(128);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_5__Marker__ = __webpack_require__(129);
+
+
+
 
 
 
 function getRandomInt(max) {
     return Math.floor(Math.random() * Math.floor(max));
 }
+let eventKeywords = ['food', 'concert', 'sports', 'protest', 'exposition'];
+let minHeight = 5; // minimum height for buildings
+let maxHeight = 30; // maximum height for buildings
+let rad = 5; // radius for building occupance
 class Simulation {
-    constructor(n, d, h) {
-        this.dest = __WEBPACK_IMPORTED_MODULE_0_gl_matrix__["c" /* vec3 */].fromValues(0, 0, 0); // destination of the crowd (for milestone only)
+    constructor(n, d, h, b) {
         this.agents = [];
+        this.buildings = [];
+        this.markers = [];
+        this.events = [];
         this.locationMap = new Array(d[0]).fill(0).map(() => new Array(d[1]).fill(0));
-        this.densityMap = new Array(d[0]).fill(0).map(() => new Array(d[1]).fill(0));
         this.numAgents = n;
         this.dimensions = d;
         this.height = h;
+        this.setupBuildings(b);
         this.initializeSimulation();
     }
-    // Setup the agents in random locations and the density map
-    initializeSimulation() {
-        // Create numAgents amount of agents and place them randomly
-        for (var i = 0; i < this.numAgents; i++) {
-            // generate random starting position until it's valid
+    // Setup the buildings in the city (generate b amount of buildings)
+    setupBuildings(b) {
+        for (var i = 0; i < b; i++) {
+            // pick a random building position
             var x = 0;
             var z = 0;
             while (true) {
-                x = getRandomInt(this.dimensions[0]);
-                z = getRandomInt(this.dimensions[1]);
+                x = getRandomInt(this.dimensions[0] - 2 * rad) + rad;
+                z = getRandomInt(this.dimensions[1] - 2 * rad) + rad;
                 // found valid location
                 if (this.locationMap[x][z] == 0) {
                     break;
                 }
             }
-            // create an Agent at this location
-            var posA = __WEBPACK_IMPORTED_MODULE_0_gl_matrix__["c" /* vec3 */].fromValues(x - this.dimensions[0] / 2, this.height, z - this.dimensions[1] / 2);
-            var dirA = __WEBPACK_IMPORTED_MODULE_0_gl_matrix__["c" /* vec3 */].fromValues(0, 0, 1); // start all agents looking forward
-            var colA = __WEBPACK_IMPORTED_MODULE_0_gl_matrix__["c" /* vec3 */].fromValues(1, 0, 0); // make all agents initially red
-            var newA = new __WEBPACK_IMPORTED_MODULE_2__Agent__["a" /* default */](posA, dirA, colA);
+            var posB = __WEBPACK_IMPORTED_MODULE_0_gl_matrix__["c" /* vec3 */].fromValues(x - this.dimensions[0] / 2, this.height, z - this.dimensions[1] / 2);
+            var newBuilding = new __WEBPACK_IMPORTED_MODULE_4__Building__["a" /* default */](posB, minHeight + getRandomInt(maxHeight - minHeight));
+            // push more matrices and meshes to make the building reach the floor
+            while (!newBuilding.hasReachedFloor()) {
+                var newT = __WEBPACK_IMPORTED_MODULE_0_gl_matrix__["a" /* mat4 */].fromValues(3.0, 0.0, 0.0, 0.0, 0.0, 3.0, 0.0, 0.0, 0.0, 0.0, 3.0, 0.0, newBuilding.pos[0], newBuilding.remainingHeight, newBuilding.pos[2], 1.0);
+                newBuilding.addFloor(getRandomInt(3), newT);
+            }
+            // add the building to the list of buildings
+            this.buildings.push(newBuilding);
+            // occupy the neighboring cells, as well as the center cell, for the building
+            for (var j = x - rad; j <= x + rad; j++) {
+                for (var k = z - rad; k <= z + rad; k++) {
+                    if (j < 0 || j >= this.dimensions[0] ||
+                        k < 0 || k >= this.dimensions[1]) {
+                        continue;
+                    }
+                    this.locationMap[j][k] = -1; // occupy the grid cell
+                }
+            }
+        }
+    }
+    // Setup the agents in random marker locations
+    initializeSimulation() {
+        // Create numAgents * 100 markers
+        for (var i = 0; i < this.numAgents * 100; i++) {
+            // generate random marker position until it's valid
+            var x = 0;
+            var z = 0;
+            while (true) {
+                x = getRandomInt(this.dimensions[0] - 20) + 10;
+                z = getRandomInt(this.dimensions[1] - 20) + 10;
+                // found valid location
+                if (this.locationMap[x][z] == 0) {
+                    break;
+                }
+            }
+            // create a marker at this location
+            var posM = __WEBPACK_IMPORTED_MODULE_0_gl_matrix__["c" /* vec3 */].fromValues(x - this.dimensions[0] / 2, this.height, z - this.dimensions[1] / 2);
+            var newMarker = new __WEBPACK_IMPORTED_MODULE_5__Marker__["a" /* default */](posM);
+            this.markers.push(newMarker);
+        }
+        // Create numAgents amount of agents and put them at random markers
+        for (var i = 0; i < this.numAgents; i++) {
+            var idx = 0;
+            while (true) {
+                idx = getRandomInt(this.markers.length);
+                var marker = this.markers[idx];
+                if (marker.agent == -1) {
+                    break;
+                }
+            }
+            var posA = this.markers[idx].pos;
+            var e = getRandomInt(eventKeywords.length);
+            var colA = __WEBPACK_IMPORTED_MODULE_0_gl_matrix__["c" /* vec3 */].fromValues(Math.min(e * 0.12 + (17 % e) * 0.05, 1), Math.min(e * 0.15 + (7 % e) * 0.04, 1), Math.min(e * 0.21 + (28 % e) * 0.07, 1)); // make all agents initially red
+            var newA = new __WEBPACK_IMPORTED_MODULE_2__Agent__["a" /* default */](posA, colA, idx);
+            // give an arbitrary interest to the agent (picked from the list)
+            newA.addInterest(eventKeywords[e]);
+            newA.changeDest(this.markers[getRandomInt(this.markers.length)].pos);
+            // associate this agent with the given marker
+            this.markers[idx].agent = newA.getId();
             // fill the locationMap with agent's id
             this.locationMap[x][z] = newA.getId();
             // put the agent to the list of agents
             this.agents.push(newA);
         }
     }
-    // Fill the density map for coloring (must be called after picking agent locations)
-    fillDensityMap(r) {
-        for (let a of this.agents) {
-            var posA = a.getPos(); // agent's position
-            // look at the neighboring pixels at a radius = r
-            for (var i = posA[0] - r; i <= posA[0] + r; i++) {
-                for (var j = posA[1] - r; j <= posA[1] + r; j++) {
-                    if (i < 0 || j < 0 || i >= this.dimensions[0] || j >= this.dimensions[1]) {
-                        continue;
+    // Simulate the crowd by one tick towards given destination point
+    simulationStep(rad) {
+        for (var a = 0; a < this.agents.length; a++) {
+            var maxWeight = -1; // keep track of largest weight
+            var closestMarker = -1; // keep track of the closest marker index
+            for (var m = 0; m < this.markers.length; m++) {
+                // check if the marker is occupied already
+                if (this.markers[m].agent != -1) {
+                    continue;
+                }
+                // check if the marker is in the given search scope
+                var vecM = __WEBPACK_IMPORTED_MODULE_0_gl_matrix__["c" /* vec3 */].fromValues(this.markers[m].pos[0] - this.agents[a].getPos()[0], this.markers[m].pos[1] - this.agents[a].getPos()[1], this.markers[m].pos[2] - this.agents[a].getPos()[2]);
+                var lM = Math.sqrt(vecM[0] * vecM[0] +
+                    vecM[1] * vecM[1] +
+                    vecM[2] * vecM[2]);
+                if (lM > rad) {
+                    continue;
+                }
+                // find the angle between the marker vector and the destination vector
+                var destM = __WEBPACK_IMPORTED_MODULE_0_gl_matrix__["c" /* vec3 */].fromValues(this.agents[a].dest[0] - this.agents[a].getPos()[0], this.agents[a].dest[1] - this.agents[a].getPos()[1], this.agents[a].dest[2] - this.agents[a].getPos()[2]);
+                var lDest = Math.sqrt(destM[0] * destM[0] +
+                    destM[1] * destM[1] +
+                    destM[2] * destM[2]);
+                // vector between the marker and destination
+                var destDist = __WEBPACK_IMPORTED_MODULE_0_gl_matrix__["c" /* vec3 */].fromValues(this.agents[a].dest[0] - this.markers[m].pos[0], this.agents[a].dest[1] - this.markers[m].pos[1], this.agents[a].dest[2] - this.markers[m].pos[2]);
+                var ldestM = Math.sqrt(destDist[0] * destDist[0] +
+                    destDist[1] * destDist[1] +
+                    destDist[2] * destDist[2]);
+                if (lDest <= ldestM) {
+                    continue;
+                }
+                var ang = Object(__WEBPACK_IMPORTED_MODULE_1_gl_vec3__["angle"])(vecM, destM);
+                // calculate the weight
+                var w = Math.abs(1 + Math.cos(ang) / (1 + lM));
+                if (w > maxWeight) {
+                    maxWeight = w;
+                    closestMarker = m;
+                }
+            }
+            // If closest marker found, move the agent there
+            if (closestMarker != -1) {
+                // free the marker and the location where agent is currently located
+                this.markers[this.agents[a].markerId].agent = -1;
+                this.locationMap[this.markers[this.agents[a].markerId].pos[0] + this.dimensions[0] / 2][this.markers[this.agents[a].markerId].pos[2] + this.dimensions[1] / 2] = 0;
+                // move the agent to the new marker
+                this.agents[a].markerId = closestMarker;
+                this.agents[a].pos = this.markers[closestMarker].pos;
+                this.markers[closestMarker].agent = this.agents[a].getId();
+                this.locationMap[this.markers[closestMarker].pos[0] + this.dimensions[0] / 2][this.markers[closestMarker].pos[2] + this.dimensions[1] / 2] = this.agents[a].getId();
+            }
+            else {
+                // if no possible movement found and there is no event, assign a new destination
+                if (this.events.length != 0 && this.agents[a].interests.length != 0) {
+                    if (this.agents[a].currentEvent == -1) {
+                        this.agents[a].changeDest(this.markers[getRandomInt(this.markers.length)].pos);
                     }
-                    // if cell is not visited yet, mark it for uni-coloring
-                    var val = this.locationMap[i][j];
-                    if (val == 0) {
-                        this.densityMap[i][j] = 1;
-                    }
-                    else if (val == -1) {
-                        // if the cell is marked for multiple agent intersection, leave it
-                        continue;
-                    }
-                    else {
-                        // if this cell is occupied by another agent, mark it to be white
-                        this.densityMap[i][j] = -1;
-                    }
+                }
+                else {
+                    this.agents[a].changeDest(this.markers[getRandomInt(this.markers.length)].pos);
                 }
             }
         }
     }
-    // Simulate the crowd by one tick towards given destination point
-    simulationStep() {
-        // first calculate potential final position coordinates, create a "potential" locationMap
-        //var potentialMap = Object.assign([], this.locationMap);
+    // Add an event to the city
+    addEvent(pos, keyword, name, scope = 20) {
+        if (this.locationMap[Math.floor(pos[0] + this.dimensions[0] / 2)][Math.floor(pos[2] + this.dimensions[1] / 2)] != -1) {
+            console.log('added!');
+            var keys = [];
+            keys.push(keyword);
+            var newEvent = new __WEBPACK_IMPORTED_MODULE_3__Event__["a" /* default */](pos, scope, keys, name);
+            this.events.push(newEvent);
+            this.changeDestination(); // update the destinations
+            return 1;
+        }
+        else {
+            return -1; // unsuccesful!
+        }
+    }
+    // Remove the event associated with the given id
+    removeEvent(n) {
+        var id = 0;
+        for (let e of this.events) {
+            if (e.name === n) {
+                break;
+            }
+            id++;
+        }
+        this.events.splice(id, 1);
+        this.changeDestination(); // update the destinations
+    }
+    // change the goal destination of the crowd
+    changeDestination() {
         for (let a of this.agents) {
-            //console.log(a.getId() + " " + a.getPos());
-            //console.log(this.locationMap);
-            var currPos = a.getPos(); // current position of the agent
-            var dir = __WEBPACK_IMPORTED_MODULE_0_gl_matrix__["c" /* vec3 */].fromValues(this.dest[0] - currPos[0], this.dest[1] - currPos[1], this.dest[2] - currPos[2]);
-            dir = Object(__WEBPACK_IMPORTED_MODULE_1_gl_vec3__["normalize"])(dir, dir);
-            var potentialPos = __WEBPACK_IMPORTED_MODULE_0_gl_matrix__["c" /* vec3 */].fromValues(currPos[0] + Math.sign(dir[0]) * Math.round(Math.abs(dir[0])), currPos[1] + Math.sign(dir[1]) * Math.round(Math.abs(dir[1])), currPos[2] + Math.sign(dir[2]) * Math.round(Math.abs(dir[2])));
-            var newX = Math.ceil(potentialPos[0] + this.dimensions[0] / 2); // new x-location in locationMap
-            var newZ = Math.ceil(potentialPos[2] + this.dimensions[1] / 2); // new z-location in locationMap
-            var oldX = Math.ceil(currPos[0] + this.dimensions[0] / 2); // old x-location in locationMap
-            var oldZ = Math.ceil(currPos[2] + this.dimensions[1] / 2); // old z-location in locationMap
-            // if the potential position is available, move the agent there
-            if (this.locationMap[newX][newZ] == 0) {
-                a.pos = potentialPos;
-                this.locationMap[newX][newZ] = a.getId();
-                // free the old occupied location
-                this.locationMap[oldX][oldZ] = 0;
+            var related = this.events.filter(event => a.interests.some(interest => event.keywords.indexOf(interest) >= 0));
+            if (related.length != 0) {
+                var rand = related[getRandomInt(related.length)];
+                a.changeDest(rand.pos);
+                a.updateCurrentEvent(rand.id);
             }
-            else if (this.locationMap[newX][newZ + Math.sign(dir[2])] == 0) { //Check out of bounds
-                a.pos = __WEBPACK_IMPORTED_MODULE_0_gl_matrix__["c" /* vec3 */].fromValues(potentialPos[0], potentialPos[1], potentialPos[2] + Math.sign(dir[2]));
-                this.locationMap[newX][newZ + Math.sign(dir[2])] = a.getId();
-                // free the old occupied location
-                this.locationMap[oldX][oldZ] = 0;
-            }
-            else if (this.locationMap[newX + Math.sign(dir[0])][newZ] == 0) { //Check out of bounds
-                a.pos = __WEBPACK_IMPORTED_MODULE_0_gl_matrix__["c" /* vec3 */].fromValues(potentialPos[0] + Math.sign(dir[0]), potentialPos[1], potentialPos[2]);
-                this.locationMap[newX + Math.sign(dir[0])][newZ] = a.getId();
-                // free the old occupied location
-                this.locationMap[oldX][oldZ] = 0;
-            }
-            else if (this.locationMap[oldX][newZ + Math.sign(dir[2])] == 0) { //Check out of bounds
-                a.pos = __WEBPACK_IMPORTED_MODULE_0_gl_matrix__["c" /* vec3 */].fromValues(currPos[0], potentialPos[1], potentialPos[2] + Math.sign(dir[2]));
-                this.locationMap[oldX][newZ + Math.sign(dir[2])] = a.getId();
-                // free the old occupied location
-                this.locationMap[oldX][oldZ] = 0;
-            }
-            else if (this.locationMap[newX + Math.sign(dir[0])][oldZ] == 0) { //Check out of bounds
-                a.pos = __WEBPACK_IMPORTED_MODULE_0_gl_matrix__["c" /* vec3 */].fromValues(potentialPos[0] + Math.sign(dir[0]), potentialPos[1], currPos[2]);
-                this.locationMap[newX + Math.sign(dir[0])][oldZ] = a.getId();
-                // free the old occupied location
-                this.locationMap[oldX][oldZ] = 0;
+            else {
+                a.updateCurrentEvent(-1); // agent has no events interested
             }
         }
     }
-    // change the goal destination of the crowd (for this milestone, this applies to whole crowd)
-    changeDestination(dest) {
-        this.dest = dest;
+    // Check if an event already exists with a given name
+    doesEventExist(n) {
+        for (let e of this.events) {
+            if (e.name === n) {
+                return true;
+            }
+        }
+        return false;
     }
     // Get the agent array
     getAgents() {
         return this.agents;
+    }
+    // Get the transformation matrices for the buildings
+    getBuildingMatrices() {
+        var matrices = [];
+        for (var i = 0; i < this.buildings.length; i++) {
+            var buildingTs = this.buildings[i].transforms;
+            for (var j = 0; j < buildingTs.length; j++) {
+                matrices.push(buildingTs[j]);
+            }
+        }
+        return matrices;
+    }
+    // Get the indices for the buildings
+    getBuildingIndices() {
+        var indices = [];
+        for (var i = 0; i < this.buildings.length; i++) {
+            var buildingIs = this.buildings[i].instances;
+            for (var j = 0; j < buildingIs.length; j++) {
+                indices.push(buildingIs[j]);
+            }
+        }
+        return indices;
     }
 }
 /* harmony export (immutable) */ __webpack_exports__["a"] = Simulation;
@@ -17029,9 +17322,7 @@ function angle(a, b) {
  
     normalize(tempA, tempA)
     normalize(tempB, tempB)
- 
     var cosine = dot(tempA, tempB)
-
     if(cosine > 1.0){
         return 0
     } else {
@@ -17655,12 +17946,15 @@ function forEach(a, stride, offset, count, fn, arg) {
 
 let idCount = 1; // generate a unique id for each agent
 class Agent {
-    constructor(pos, dir, col) {
+    constructor(pos, col, mId) {
         this.id = idCount;
         idCount++; // increment the id counter
         this.pos = pos;
-        this.dir = dir;
         this.col = col;
+        this.markerId = mId;
+        this.dest = __WEBPACK_IMPORTED_MODULE_0_gl_matrix__["c" /* vec3 */].fromValues(0, 0, 0); // default destination
+        this.interests = []; // start off with no event preference
+        this.currentEvent = -1;
     }
     // Compare two Agent instances by id
     equals(other) {
@@ -17678,6 +17972,13 @@ class Agent {
     changeCol(newCol) {
         this.col = newCol;
     }
+    // Change the destination of the agent
+    changeDest(newDest) {
+        this.dest = newDest;
+    }
+    updateCurrentEvent(id) {
+        this.currentEvent = id;
+    }
     // Calculate the corresponding transformation matrix for instanced rendering
     computeMatrix() {
         var trans = __WEBPACK_IMPORTED_MODULE_0_gl_matrix__["a" /* mat4 */].fromValues(1.0, 0.0, 0.0, 0.0, 0.0, 2.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, this.pos[0], this.pos[1], this.pos[2], 1.0);
@@ -17688,6 +17989,33 @@ class Agent {
         return Math.sqrt(Math.pow(this.pos[0] - other.pos[0], 2) +
             Math.pow(this.pos[1] - other.pos[1], 2) +
             Math.pow(this.pos[2] - other.pos[2], 2));
+    }
+    // Add an interest keyword (if it doesn't exist)
+    addInterest(key) {
+        var idx = this.interests.indexOf(key);
+        if (idx != -1) {
+            return -1; // key already exists!!!
+        }
+        this.interests.push(key);
+        return 1; // success!
+    }
+    // Remove an interest keyword
+    removeInterest(key) {
+        var idx = this.interests.indexOf(key);
+        if (idx == -1) {
+            return -1; // key doesn't exist!!!
+        }
+        var last = this.interests.length - 1;
+        if (idx == last) {
+            this.interests.pop();
+            return 1; // success
+        }
+        else {
+            var newArr = this.interests.slice(0, idx);
+            newArr.concat(this.interests.slice(idx + 1, last + 1));
+            this.interests = newArr;
+            return 1; // success
+        }
     }
 }
 /* harmony export (immutable) */ __webpack_exports__["a"] = Agent;
@@ -18251,6 +18579,116 @@ function str(a) {
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
+let idCount = 0; // generate a unique id for each event
+// This class represents each event happening in the city that would potentially
+// attract or repel agents
+class Event {
+    // Targeted event
+    constructor(pos, rad, keys, name) {
+        this.pos = pos;
+        this.scopeRad = rad;
+        this.keywords = keys;
+        this.id = idCount;
+        this.name = name;
+        idCount++;
+    }
+    // Relocate the event
+    changePos(newPos) {
+        this.pos = newPos;
+    }
+    // Change the scope of the event
+    changeScope(newScope) {
+        this.scopeRad = newScope;
+    }
+    // Add a keyword to the event (if it doesn't exist)
+    addKey(key) {
+        var idx = this.keywords.indexOf(key);
+        if (idx != -1) {
+            return -1; // key already exists!!!
+        }
+        this.keywords.push(key);
+        return 1; // success!
+    }
+    // Remove a keyword from the event (it it exists)
+    removeKey(key) {
+        var idx = this.keywords.indexOf(key);
+        if (idx == -1) {
+            return -1; // key doesn't exist!!!
+        }
+        var last = this.keywords.length - 1;
+        if (idx == last) {
+            this.keywords.pop();
+            return 1; // success
+        }
+        else {
+            var newArr = this.keywords.slice(0, idx);
+            newArr.concat(this.keywords.slice(idx + 1, last + 1));
+            this.keywords = newArr;
+            return 1; // success
+        }
+    }
+}
+/* harmony export (immutable) */ __webpack_exports__["a"] = Event;
+
+;
+
+
+/***/ }),
+/* 128 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+// This class represents the buildings in the city
+class Building {
+    constructor(pos, height) {
+        this.pos = pos;
+        this.height = height;
+        this.remainingHeight = height; // initially equal to height, will decrease later
+        this.instances = []; // initially empty
+        this.transforms = []; // initially empty
+    }
+    rebuild() {
+        this.instances = [];
+        this.transforms = [];
+    }
+    // Add a floor to the building
+    addFloor(i, m) {
+        this.instances.push(i);
+        this.transforms.push(m);
+        this.remainingHeight -= 2.0;
+    }
+    // Check if the building has reached the floor
+    hasReachedFloor() {
+        return this.remainingHeight < 0.0;
+    }
+}
+/* harmony export (immutable) */ __webpack_exports__["a"] = Building;
+
+;
+
+
+/***/ }),
+/* 129 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+// This class represents the markers where agents can be found
+class Marker {
+    constructor(pos) {
+        this.pos = pos;
+        this.agent = -1; // initially unoccupied
+    }
+}
+/* harmony export (immutable) */ __webpack_exports__["a"] = Marker;
+
+;
+
+
+/***/ }),
+/* 130 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_gl_matrix__ = __webpack_require__(1);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__globals__ = __webpack_require__(2);
 
@@ -18287,12 +18725,14 @@ class ShaderProgram {
         this.attrT2 = __WEBPACK_IMPORTED_MODULE_1__globals__["a" /* gl */].getAttribLocation(this.prog, "vs_T2");
         this.attrT3 = __WEBPACK_IMPORTED_MODULE_1__globals__["a" /* gl */].getAttribLocation(this.prog, "vs_T3");
         this.attrUV = __WEBPACK_IMPORTED_MODULE_1__globals__["a" /* gl */].getAttribLocation(this.prog, "vs_UV");
+        this.attrType = __WEBPACK_IMPORTED_MODULE_1__globals__["a" /* gl */].getAttribLocation(this.prog, "vs_Type");
         this.unifModel = __WEBPACK_IMPORTED_MODULE_1__globals__["a" /* gl */].getUniformLocation(this.prog, "u_Model");
         this.unifModelInvTr = __WEBPACK_IMPORTED_MODULE_1__globals__["a" /* gl */].getUniformLocation(this.prog, "u_ModelInvTr");
         this.unifViewProj = __WEBPACK_IMPORTED_MODULE_1__globals__["a" /* gl */].getUniformLocation(this.prog, "u_ViewProj");
         this.unifPlanePos = __WEBPACK_IMPORTED_MODULE_1__globals__["a" /* gl */].getUniformLocation(this.prog, "u_PlanePos");
         this.unifDimensions = __WEBPACK_IMPORTED_MODULE_1__globals__["a" /* gl */].getUniformLocation(this.prog, "u_Dimensions");
         this.unifTime = __WEBPACK_IMPORTED_MODULE_1__globals__["a" /* gl */].getUniformLocation(this.prog, "u_Time");
+        this.unifMode = __WEBPACK_IMPORTED_MODULE_1__globals__["a" /* gl */].getUniformLocation(this.prog, "u_Mode");
     }
     use() {
         if (activeProgram !== this.prog) {
@@ -18336,7 +18776,13 @@ class ShaderProgram {
             __WEBPACK_IMPORTED_MODULE_1__globals__["a" /* gl */].uniform1f(this.unifTime, t);
         }
     }
-    draw(d) {
+    setMode(m) {
+        this.use();
+        if (this.unifMode !== -1) {
+            __WEBPACK_IMPORTED_MODULE_1__globals__["a" /* gl */].uniform1f(this.unifMode, m);
+        }
+    }
+    draw(d, type) {
         this.use();
         if (this.attrPos != -1 && d.bindPos()) {
             __WEBPACK_IMPORTED_MODULE_1__globals__["a" /* gl */].enableVertexAttribArray(this.attrPos);
@@ -18376,9 +18822,19 @@ class ShaderProgram {
             __WEBPACK_IMPORTED_MODULE_1__globals__["a" /* gl */].vertexAttribPointer(this.attrUV, 2, __WEBPACK_IMPORTED_MODULE_1__globals__["a" /* gl */].FLOAT, false, 0, 0);
             __WEBPACK_IMPORTED_MODULE_1__globals__["a" /* gl */].vertexAttribDivisor(this.attrUV, 0); // Advance 1 index in pos VBO for each vertex
         }
+        if (this.attrType != -1 && d.bindType()) {
+            __WEBPACK_IMPORTED_MODULE_1__globals__["a" /* gl */].enableVertexAttribArray(this.attrType);
+            __WEBPACK_IMPORTED_MODULE_1__globals__["a" /* gl */].vertexAttribPointer(this.attrType, 1, __WEBPACK_IMPORTED_MODULE_1__globals__["a" /* gl */].FLOAT, false, 0, 0);
+            __WEBPACK_IMPORTED_MODULE_1__globals__["a" /* gl */].vertexAttribDivisor(this.attrType, 1); // Advance 1 index in pos VBO for each vertex
+        }
         d.bindIdx();
-        //gl.drawElements(d.drawMode(), d.elemCount(), gl.UNSIGNED_INT, 0);
-        __WEBPACK_IMPORTED_MODULE_1__globals__["a" /* gl */].drawElementsInstanced(d.drawMode(), d.elemCount(), __WEBPACK_IMPORTED_MODULE_1__globals__["a" /* gl */].UNSIGNED_INT, 0, d.numInstances);
+        if (type == 0) {
+            __WEBPACK_IMPORTED_MODULE_1__globals__["a" /* gl */].drawElements(d.drawMode(), d.elemCount(), __WEBPACK_IMPORTED_MODULE_1__globals__["a" /* gl */].UNSIGNED_INT, 0);
+        }
+        else if (type == 1) {
+            __WEBPACK_IMPORTED_MODULE_1__globals__["a" /* gl */].drawElementsInstanced(d.drawMode(), d.elemCount(), __WEBPACK_IMPORTED_MODULE_1__globals__["a" /* gl */].UNSIGNED_INT, 0, d.numInstances);
+        }
+        //gl.drawElementsInstanced(d.drawMode(), d.elemCount(), gl.UNSIGNED_INT, 0, d.numInstances);
         if (this.attrPos != -1)
             __WEBPACK_IMPORTED_MODULE_1__globals__["a" /* gl */].disableVertexAttribArray(this.attrPos);
         if (this.attrNor != -1)
@@ -18395,6 +18851,8 @@ class ShaderProgram {
             __WEBPACK_IMPORTED_MODULE_1__globals__["a" /* gl */].disableVertexAttribArray(this.attrT3);
         if (this.attrUV != -1)
             __WEBPACK_IMPORTED_MODULE_1__globals__["a" /* gl */].disableVertexAttribArray(this.attrUV);
+        if (this.attrType != -1)
+            __WEBPACK_IMPORTED_MODULE_1__globals__["a" /* gl */].disableVertexAttribArray(this.attrType);
     }
 }
 ;
@@ -18402,40 +18860,16 @@ class ShaderProgram {
 
 
 /***/ }),
-/* 128 */
-/***/ (function(module, exports) {
-
-module.exports = "#version 300 es\n\n\nuniform mat4 u_Model;\nuniform mat4 u_ModelInvTr;\nuniform mat4 u_ViewProj;\nuniform vec2 u_PlanePos; // Our location in the virtual world displayed by the plane\n\nin vec4 vs_Pos;\nin vec4 vs_Nor;\nin vec4 vs_Col;\n\nout vec3 fs_Pos;\nout vec4 fs_Nor;\nout vec4 fs_Col;\n\nout float fs_Sine;\n\nfloat random1( vec2 p , vec2 seed) {\n  return fract(sin(dot(p + seed, vec2(127.1, 311.7))) * 43758.5453);\n}\n\nfloat random1( vec3 p , vec3 seed) {\n  return fract(sin(dot(p + seed, vec3(987.654, 123.456, 531.975))) * 85734.3545);\n}\n\nvec2 random2( vec2 p , vec2 seed) {\n  return fract(sin(vec2(dot(p + seed, vec2(311.7, 127.1)), dot(p + seed, vec2(269.5, 183.3)))) * 85734.3545);\n}\n\nvoid main()\n{\n  fs_Pos = vs_Pos.xyz;\n  // fs_Sine = (sin((vs_Pos.x + u_PlanePos.x) * 3.14159 * 0.1) + cos((vs_Pos.z + u_PlanePos.y) * 3.14159 * 0.1));\n  vec4 modelposition = vec4(vs_Pos.x, vs_Pos.y, vs_Pos.z, 1.0);\n  modelposition = u_Model * modelposition;\n  gl_Position = u_ViewProj * modelposition;\n}\n"
-
-/***/ }),
-/* 129 */
-/***/ (function(module, exports) {
-
-module.exports = "#version 300 es\nprecision highp float;\n\nuniform vec2 u_PlanePos; // Our location in the virtual world displayed by the plane\nuniform vec2 u_Dimensions; // Dimensions of the plane\nin vec3 fs_Pos;\nin vec4 fs_Nor;\nin vec4 fs_Col;\n\nin float fs_Sine;\n\nout vec4 out_Col; // This is the final output color that you will see on your\n                  // screen for the pixel that is currently being processed.\n\nvec2 random2(vec2 p) {\n    return fract(sin(vec2(dot(p, vec2(127.1, 311.7)), dot(p, vec2(269.5, 183.3)))) * 43758.5453);\n}\n\nvoid main()\n{\n    // float t = clamp(smoothstep(40.0, 50.0, length(fs_Pos)), 0.0, 1.0); // Distance fog\n    // out_Col = vec4(mix(vec3(0.5 * (fs_Sine + 1.0)), vec3(164.0 / 255.0, 233.0 / 255.0, 1.0), t), 1.0);\n\n    float x = (fs_Pos.x + 50.0) * 0.2; // scaled x coordinate of UV\n    float y = (fs_Pos.z + 50.0) * 0.2; // scaled y coordinate of UV\n    int cellX = int(x); // lower-left X coordinate in which the point lies\n    int cellY = int(y); // lower-left Y coordinate in which the point lies\n    vec2 randomPoint = random2(vec2(cellX, cellY)); // random point in the cell that our point belongs to\n    randomPoint += vec2(cellX, cellY); // add randomPoint with cell coordinates to make our random point fall into given cell\n    vec2 closest = randomPoint; // keep track of closest random point to our current pixel\n    bool oops = false;\n    for (int i = cellY - 1; i <= cellY + 1; i++) {\n        // skip the coordinate if out of bounds\n        if (i < 0 || i > int(u_Dimensions.y)) {\n            continue;\n            // oops = true;\n            // break;\n        }\n        for (int j = cellX - 1; j <= cellX + 1; j++) {\n            // skip the coordinate if out of bounds\n            if (j < 0 || j > int(u_Dimensions.x)) {\n                continue;\n                // oops = true;\n                // break;\n            }\n            vec2 rand = random2(vec2(j, i)); // find the random point in neighbor pixel\n            rand += vec2(j, i); // add randomPoint with cell coordinates to make our random point fall into given cell\n            float distance = sqrt(pow(x - rand.x, 2.0) + pow(y - rand.y, 2.0)); // calculate distance\n            if (distance < sqrt(pow(x - closest.x, 2.0) + pow(y - closest.y, 2.0))) {\n                closest = rand;\n            }\n        }\n    }\n    if (oops) {\n    \tout_Col = vec4(1.0, 0.0, 0.0, 1.0);\n    } else {\n    \t//diffuseColor = texture(u_RenderedTexture, vec2(closest.x / 75.0, closest.y / 50.0)).rgb; // get the color from closest point coordinates\n    \tfloat difference = sqrt(pow(x - (closest.x - 0.25), 2.0) + pow(y - (closest.y - 0.25), 2.0)); // calculate the distance between pixel and closest point\n    \tfloat colX = clamp(difference, 0.0, 1.0); // r value\n    \tfloat colY = clamp(difference, 0.0, 1.0); // g value\n    \tfloat colZ = clamp(difference, 0.0, 1.0); // b value\n    \tout_Col = vec4(colX, colY, colZ, 1.0);\n    }\n\n}\n"
-
-/***/ }),
-/* 130 */
-/***/ (function(module, exports) {
-
-module.exports = "#version 300 es\nprecision highp float;\n\n// The vertex shader used to render the background of the scene\n\nin vec4 vs_Pos;\n\nvoid main() {\n  gl_Position = vs_Pos;\n}\n"
-
-/***/ }),
 /* 131 */
 /***/ (function(module, exports) {
 
-module.exports = "#version 300 es\nprecision highp float;\n\n// The fragment shader used to render the background of the scene\n// Modify this to make your background more interesting\n\nuniform vec2 u_Dimensions;\nuniform float u_Time;\n\nout vec4 out_Col;\n\nfloat random (vec2 p) {\n    return fract(sin(dot(p.xy,\n                         vec2(12.9898,78.233)))*\n        43758.5453123);\n}\n\nfloat noise (vec2 p) {\n    vec2 i = floor(p);\n    vec2 f = fract(p);\n\n    // Four corners in 2D of a tile\n    float a = random(i);\n    float b = random(i + vec2(1.0, 0.0));\n    float c = random(i + vec2(0.0, 1.0));\n    float d = random(i + vec2(1.0, 1.0));\n\n    vec2 u = f * f * (3.0 - 2.0 * f);\n\n    return mix(a, b, u.x) +\n            (c - a)* u.y * (1.0 - u.x) +\n            (d - b) * u.x * u.y;\n}\n\nfloat fbm (vec2 p, int octaves) {\n    float v = 0.0;\n    float a = 0.5;\n    vec2 shift = vec2(100.0);\n    // Rotate to reduce axial bias\n    mat2 rot = mat2(cos(0.5), sin(0.5),\n                    -sin(0.5), cos(0.50));\n    for (int i = 0; i < octaves; ++i) {\n        v += a * noise(p);\n        p= rot * p * 2.0 + shift;\n        a *= 0.5;\n    }\n    return v;\n}\n\nvoid main() {\n    float t = u_Time * 0.005;\n    vec2 st = gl_FragCoord.xy/u_Dimensions.xy*3.;\n    vec3 color = vec3(0.0);\n\n    vec2 q = vec2(0.);\n    q.x = fbm( st + 0.00*t, 5);\n    q.y = fbm( st + vec2(1.0), 5);\n\n    vec2 r = vec2(0.);\n    r.x = fbm( st + 1.0*q + vec2(1.7,9.2)+ 0.15*t, 5 );\n    r.y = fbm( st + 1.0*q + vec2(8.3,2.8)+ 0.126*t, 5);\n\n    float f = fbm(st+r, 5);\n\n    color = mix(vec3(0.101961,0.619608,0.666667),\n                vec3(0.666667,0.666667,0.498039),\n                clamp((f*f)*4.0,0.0,1.0));\n\n    color = mix(color,\n                vec3(0,0,0.164706),\n                clamp(length(q),0.0,1.0));\n\n    color = mix(color,\n                vec3(0.666667,1,1),\n                clamp(length(r.x),0.0,1.0));\n\n    out_Col = vec4((f*f*f+.6*f*f+.5*f)*color.x, 0.0, 0.0,1.);\n}\n"
+module.exports = "#version 300 es\n\n\nuniform mat4 u_Model;\nuniform mat4 u_ModelInvTr;\nuniform mat4 u_ViewProj;\nuniform vec2 u_PlanePos; // Our location in the virtual world displayed by the plane\nuniform float u_Mode;\n\nin vec4 vs_Pos;\nin vec4 vs_Nor;\nin vec4 vs_Col;\nin vec4 vs_T0; // first column of transform matrix\nin vec4 vs_T1; // second column of transform matrix\nin vec4 vs_T2; // third column of transform matrix\nin vec4 vs_T3; // fourth column of transform matrix\nin vec2 vs_UV; // Non-instanced, and presently unused in main(). Feel free to use it for your meshes.\nin float vs_Type;\n\nout vec4 fs_Pos;\nout vec4 fs_Nor;\nout vec4 fs_Col;\nout float fs_Type;\n\nout float fs_Sine;\n\nfloat random1( vec2 p , vec2 seed) {\n  return fract(sin(dot(p + seed, vec2(127.1, 311.7))) * 43758.5453);\n}\n\nfloat random1( vec3 p , vec3 seed) {\n  return fract(sin(dot(p + seed, vec3(987.654, 123.456, 531.975))) * 85734.3545);\n}\n\nvec2 random2( vec2 p , vec2 seed) {\n  return fract(sin(vec2(dot(p + seed, vec2(311.7, 127.1)), dot(p + seed, vec2(269.5, 183.3)))) * 85734.3545);\n}\n\nvoid main()\n{\n  // if (vs_T0.x != 0.0 || vs_T0.y != 0.0 || vs_T0.z != 0.0 ||\n  // \tvs_T1.x != 0.0 || vs_T1.y != 0.0 || vs_T1.z != 0.0 ||\n  // \tvs_T2.x != 0.0 || vs_T2.y != 0.0 || vs_T2.z != 0.0 ||\n  // \tvs_T3.x != 0.0 || vs_T3.y != 0.0 || vs_T3.z != 0.0) {\n  fs_Type = vs_Type;\n  if (u_Mode == 0.0) { // instances\n  \tmat4 T = mat4(vs_T0, vs_T1, vs_T2, vs_T3);\n  \tif (vs_Nor.x != 0.0 || vs_Nor.y != 0.0 || vs_Nor.z != 0.0) {\n  \t\tfs_Nor = normalize(vec4(transpose(inverse(T)) * vs_Nor)); \n  \t} else {\n  \t\tfs_Nor = vec4(0.0, 0.0, 0.0, 0.0);\n  \t}\n  \tvec4 modelposition = T * vs_Pos;\n  \tfs_Col = vs_Col;\n  \tfs_Pos = modelposition;\n  \tgl_Position = u_ViewProj * modelposition;\n  } else if (u_Mode == 1.0) {// } else { // plane\n  \tfs_Pos = vs_Pos;\n  \tfs_Col = vec4(1.0);\n  \tvec4 modelposition = vec4(vs_Pos.x, vs_Pos.y, vs_Pos.z, 1.0);\n  \tmodelposition = u_Model * modelposition;\n  \tgl_Position = u_ViewProj * modelposition;\n  } else if (u_Mode == 2.0) { // background\n    gl_Position = vs_Pos;\n  }\n}\n"
 
 /***/ }),
 /* 132 */
 /***/ (function(module, exports) {
 
-module.exports = "#version 300 es\n\nuniform mat4 u_ViewProj;\nuniform float u_Time;\n\n// gl_Position = center + vs_Pos.x * camRight + vs_Pos.y * camUp;\n\nin vec4 vs_Pos; // Non-instanced; each particle is the same quad drawn in a different place\nin vec4 vs_Nor; // Non-instanced, and presently unused\nin vec4 vs_Col; // An instanced rendering attribute; each particle instance has a different color\nin vec4 vs_T0; // first column of transform matrix\nin vec4 vs_T1; // second column of transform matrix\nin vec4 vs_T2; // third column of transform matrix\nin vec4 vs_T3; // fourth column of transform matrix\nin vec2 vs_UV; // Non-instanced, and presently unused in main(). Feel free to use it for your meshes.\n\nout vec4 fs_Col;\nout vec4 fs_Pos;\nout vec4 fs_Nor;\n\nvoid main()\n{\n    fs_Col = vs_Col;\n    mat4 T = mat4(vs_T0, vs_T1, vs_T2, vs_T3);\n    if (vs_Nor.x != 0.0 || vs_Nor.y != 0.0 || vs_Nor.z != 0.0) {\n    \tfs_Nor = normalize(vec4(transpose(inverse(T)) * vs_Nor)); \n    } else {\n    \tfs_Nor = vec4(0.0, 0.0, 0.0, 0.0);\n    }\n    vec4 modelposition = T * vs_Pos;\n    fs_Pos = modelposition;\n    gl_Position = u_ViewProj * modelposition;\n}\n"
-
-/***/ }),
-/* 133 */
-/***/ (function(module, exports) {
-
-module.exports = "#version 300 es\nprecision highp float;\n\nin vec4 fs_Col;\nin vec4 fs_Pos;\nin vec4 fs_Nor;\nin vec4 fs_LightVec1;\nin vec4 fs_LightVec2;\nin vec4 fs_LightVec3;\n\nuniform float u_Time;\n\nout vec4 out_Col;\n\nfloat square_wave(float x, float freq, float amplitude) {\n\treturn abs(float(int(floor(x * freq)) % 2) * amplitude);\n}\n\nvoid main()\n{\n\tout_Col = fs_Col;\n}\n"
+module.exports = "#version 300 es\nprecision highp float;\n\nuniform vec2 u_PlanePos; // Our location in the virtual world displayed by the plane\nuniform vec2 u_Dimensions; // Dimensions of the plane\nuniform float u_Time;\nuniform float u_Mode;\nin vec4 fs_Pos;\nin vec4 fs_Nor;\nin vec4 fs_Col;\nin float fs_Type;\n\nin float fs_Sine;\n\nout vec4 out_Col; // This is the final output color that you will see on your\n                  // screen for the pixel that is currently being processed.\n\n// vec2 random2(vec2 p) {\n//     return fract(sin(vec2(dot(p, vec2(127.1, 311.7)), dot(p, vec2(269.5, 183.3)))) * 43758.5453);\n// }\n\nfloat random (vec2 p) {\n    return fract(sin(dot(p.xy,\n                         vec2(12.9898,78.233)))*\n        43758.5453123);\n}\n\nfloat square_wave(float x, float freq, float amplitude) {\n    return abs(float(int(floor(x * freq)) % 2) * amplitude);\n}\n\nfloat noise (vec2 p) {\n    vec2 i = floor(p);\n    vec2 f = fract(p);\n\n    // Four corners in 2D of a tile\n    float a = random(i);\n    float b = random(i + vec2(1.0, 0.0));\n    float c = random(i + vec2(0.0, 1.0));\n    float d = random(i + vec2(1.0, 1.0));\n\n    vec2 u = f * f * (3.0 - 2.0 * f);\n\n    return mix(a, b, u.x) +\n            (c - a)* u.y * (1.0 - u.x) +\n            (d - b) * u.x * u.y;\n}\n\nfloat fbm (vec2 p, int octaves) {\n    float v = 0.0;\n    float a = 0.5;\n    vec2 shift = vec2(100.0);\n    // Rotate to reduce axial bias\n    mat2 rot = mat2(cos(0.5), sin(0.5),\n                    -sin(0.5), cos(0.50));\n    for (int i = 0; i < octaves; ++i) {\n        v += a * noise(p);\n        p= rot * p * 2.0 + shift;\n        a *= 0.5;\n    }\n    return v;\n}\n\nvoid main()\n{\n    // float t = clamp(smoothstep(40.0, 50.0, length(fs_Pos)), 0.0, 1.0); // Distance fog\n    // out_Col = vec4(mix(vec3(0.5 * (fs_Sine + 1.0)), vec3(164.0 / 255.0, 233.0 / 255.0, 1.0), t), 1.0);\n\n    // float x = (fs_Pos.x + 50.0) * 0.2; // scaled x coordinate of UV\n    // float y = (fs_Pos.z + 50.0) * 0.2; // scaled y coordinate of UV\n    // int cellX = int(x); // lower-left X coordinate in which the point lies\n    // int cellY = int(y); // lower-left Y coordinate in which the point lies\n    // vec2 randomPoint = random2(vec2(cellX, cellY)); // random point in the cell that our point belongs to\n    // randomPoint += vec2(cellX, cellY); // add randomPoint with cell coordinates to make our random point fall into given cell\n    // vec2 closest = randomPoint; // keep track of closest random point to our current pixel\n    // bool oops = false;\n    // for (int i = cellY - 1; i <= cellY + 1; i++) {\n    //     // skip the coordinate if out of bounds\n    //     if (i < 0 || i > int(u_Dimensions.y)) {\n    //         continue;\n    //         // oops = true;\n    //         // break;\n    //     }\n    //     for (int j = cellX - 1; j <= cellX + 1; j++) {\n    //         // skip the coordinate if out of bounds\n    //         if (j < 0 || j > int(u_Dimensions.x)) {\n    //             continue;\n    //             // oops = true;\n    //             // break;\n    //         }\n    //         vec2 rand = random2(vec2(j, i)); // find the random point in neighbor pixel\n    //         rand += vec2(j, i); // add randomPoint with cell coordinates to make our random point fall into given cell\n    //         float distance = sqrt(pow(x - rand.x, 2.0) + pow(y - rand.y, 2.0)); // calculate distance\n    //         if (distance < sqrt(pow(x - closest.x, 2.0) + pow(y - closest.y, 2.0))) {\n    //             closest = rand;\n    //         }\n    //     }\n    // }\n    // if (oops) {\n    // \tout_Col = vec4(1.0, 0.0, 0.0, 1.0);\n    // } else {\n    // \t//diffuseColor = texture(u_RenderedTexture, vec2(closest.x / 75.0, closest.y / 50.0)).rgb; // get the color from closest point coordinates\n    // \tfloat difference = sqrt(pow(x - (closest.x - 0.25), 2.0) + pow(y - (closest.y - 0.25), 2.0)); // calculate the distance between pixel and closest point\n    // \tfloat colX = clamp(difference, 0.0, 1.0); // r value\n    // \tfloat colY = clamp(difference, 0.0, 1.0); // g value\n    // \tfloat colZ = clamp(difference, 0.0, 1.0); // b value\n    // \tout_Col = vec4(colX, colY, colZ, 1.0);\n    // }\n    if (u_Mode == 0.0) {\n        out_Col = fs_Col;\n    } \n    if (u_Mode == 1.0) {\n        //out_Col = fs_Col;\n        float c = 0.6 * fbm(vec2(fs_Pos.x*0.05, fs_Pos.z*0.05), 3);\n        out_Col = vec4(vec3(c), 1.0);\n    } \n    if (u_Mode == 2.0) {\n        float t = u_Time * 0.5;\n        vec2 st = gl_FragCoord.xy/u_Dimensions.xy*3.;\n        vec3 color = vec3(0.0);\n\n        vec2 q = vec2(0.);\n        q.x = fbm( st + 0.00*t, 2);\n        q.y = fbm( st + vec2(1.0), 2);\n\n        vec2 r = vec2(0.);\n        r.x = fbm( st + 1.0*q + vec2(1.7,9.2)+ 0.15*t, 2 );\n        r.y = fbm( st + 1.0*q + vec2(8.3,2.8)+ 0.126*t, 2);\n\n        float f = fbm(st+r, 5);\n\n        color = mix(vec3(0.101961,0.619608,0.666667),\n                    vec3(0.666667,0.666667,0.498039),\n                    clamp((f*f)*4.0,0.0,1.0));\n\n        color = mix(color,\n                    vec3(0,0,0.164706),\n                    clamp(length(q),0.0,1.0));\n\n        color = mix(color,\n                    vec3(0.666667,1,1),\n                    clamp(length(r.x),0.0,1.0));\n\n        out_Col = vec4((f*f*f+.6*f*f+.5*f)*color.x, (f*f*f+.6*f*f+.5*f)*color.y,(f*f*f+.6*f*f+.5*f)*color.z,1.);\n\n    }\n    if (fs_Type == 3.0) {\n        out_Col = vec4(vec3(square_wave(fs_Pos.y, 2.0, 5.0)), 1.0);\n    }\n}\n"
 
 /***/ })
 /******/ ]);
