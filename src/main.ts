@@ -51,10 +51,10 @@ let marker: Mesh;
 let pins: Mesh[] = [];
 
 // Object files
-let obj0: string = readTextFile('../obj_files/cylinder.obj');
-let obj1: string = readTextFile('../obj_files/cube.obj');
-let obj2: string = readTextFile('../obj_files/pentagon.obj');
-let obj3: string = readTextFile('../obj_files/hex.obj');
+let obj0: string = readTextFile('./obj_files/cylinder.obj');
+let obj1: string = readTextFile('./obj_files/cube.obj');
+let obj2: string = readTextFile('./obj_files/pentagon.obj');
+let obj3: string = readTextFile('./obj_files/hex.obj');
 
 function loadScene() {
   // Background

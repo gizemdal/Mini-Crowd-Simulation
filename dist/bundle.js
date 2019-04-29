@@ -6790,10 +6790,10 @@ let marker;
 // Pins for existing events
 let pins = [];
 // Object files
-let obj0 = Object(__WEBPACK_IMPORTED_MODULE_9__globals__["b" /* readTextFile */])('../obj_files/cylinder.obj');
-let obj1 = Object(__WEBPACK_IMPORTED_MODULE_9__globals__["b" /* readTextFile */])('../obj_files/cube.obj');
-let obj2 = Object(__WEBPACK_IMPORTED_MODULE_9__globals__["b" /* readTextFile */])('../obj_files/pentagon.obj');
-let obj3 = Object(__WEBPACK_IMPORTED_MODULE_9__globals__["b" /* readTextFile */])('../obj_files/hex.obj');
+let obj0 = Object(__WEBPACK_IMPORTED_MODULE_9__globals__["b" /* readTextFile */])('./obj_files/cylinder.obj');
+let obj1 = Object(__WEBPACK_IMPORTED_MODULE_9__globals__["b" /* readTextFile */])('./obj_files/cube.obj');
+let obj2 = Object(__WEBPACK_IMPORTED_MODULE_9__globals__["b" /* readTextFile */])('./obj_files/pentagon.obj');
+let obj3 = Object(__WEBPACK_IMPORTED_MODULE_9__globals__["b" /* readTextFile */])('./obj_files/hex.obj');
 function loadScene() {
     // Background
     square = new __WEBPACK_IMPORTED_MODULE_3__geometry_Square__["a" /* default */](__WEBPACK_IMPORTED_MODULE_0_gl_matrix__["c" /* vec3 */].fromValues(0, 0, 0));
