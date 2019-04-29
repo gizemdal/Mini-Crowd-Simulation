@@ -22,7 +22,13 @@ out vec4 fs_Nor;
 out vec4 fs_Col;
 out float fs_Type;
 
-out float fs_Sine;
+out vec4 fs_LightVec1; 
+out vec4 fs_LightVec2;
+out vec4 fs_LightVec3;
+
+vec3 lightPos1 = vec3(0.0, 100.0, 0.0);
+vec3 lightPos2 = vec3(30.0, 200.0, -50.0);
+vec3 lightPos3 = vec3(20.0, 50.0, -80.0);
 
 float random1( vec2 p , vec2 seed) {
   return fract(sin(dot(p + seed, vec2(127.1, 311.7))) * 43758.5453);
@@ -38,10 +44,6 @@ vec2 random2( vec2 p , vec2 seed) {
 
 void main()
 {
-  // if (vs_T0.x != 0.0 || vs_T0.y != 0.0 || vs_T0.z != 0.0 ||
-  // 	vs_T1.x != 0.0 || vs_T1.y != 0.0 || vs_T1.z != 0.0 ||
-  // 	vs_T2.x != 0.0 || vs_T2.y != 0.0 || vs_T2.z != 0.0 ||
-  // 	vs_T3.x != 0.0 || vs_T3.y != 0.0 || vs_T3.z != 0.0) {
   fs_Type = vs_Type;
   if (u_Mode == 0.0) { // instances
   	mat4 T = mat4(vs_T0, vs_T1, vs_T2, vs_T3);
@@ -53,12 +55,18 @@ void main()
   	vec4 modelposition = T * vs_Pos;
   	fs_Col = vs_Col;
   	fs_Pos = modelposition;
+    fs_LightVec1 = vec4(lightPos1, 1.0) - modelposition;
+    fs_LightVec2 = vec4(lightPos2, 1.0) - modelposition;
+    fs_LightVec3 = vec4(lightPos3, 1.0) - modelposition;
   	gl_Position = u_ViewProj * modelposition;
   } else if (u_Mode == 1.0) {// } else { // plane
   	fs_Pos = vs_Pos;
   	fs_Col = vec4(1.0);
   	vec4 modelposition = vec4(vs_Pos.x, vs_Pos.y, vs_Pos.z, 1.0);
   	modelposition = u_Model * modelposition;
+    fs_LightVec1 = vec4(lightPos1, 1.0) - modelposition;
+    fs_LightVec2 = vec4(lightPos2, 1.0) - modelposition;
+    fs_LightVec3 = vec4(lightPos3, 1.0) - modelposition;
   	gl_Position = u_ViewProj * modelposition;
   } else if (u_Mode == 2.0) { // background
     gl_Position = vs_Pos;
