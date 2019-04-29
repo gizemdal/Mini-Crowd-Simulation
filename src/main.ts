@@ -117,6 +117,7 @@ function instanceRendering() {
   let t2Array = []; // col2 array for agent
   let t3Array = []; // col2 array for agent
   let colorsArray = []; // colors array for agent
+  let typeArray = []; // type array for agent
   let n: number = agents.length; // number of agent instances
   for(let i = 0; i < n; i++) {
     var a = agents[i];
@@ -142,6 +143,7 @@ function instanceRendering() {
     colorsArray.push(a.col[1]);
     colorsArray.push(a.col[2]);
     colorsArray.push(1.0); // Alpha channel
+    typeArray.push(1.0);
   }
 
   let t0: Float32Array = new Float32Array(t0Array);
@@ -149,7 +151,8 @@ function instanceRendering() {
   let t2: Float32Array = new Float32Array(t2Array);
   let t3: Float32Array = new Float32Array(t3Array);
   let colors: Float32Array = new Float32Array(colorsArray);
-  agent.setInstanceVBOs(t0, t1, t2, t3, colors);
+  let types: Float32Array = new Float32Array(typeArray);
+  agent.setInstanceVBOs(t0, t1, t2, t3, colors, types);
   agent.setNumInstances(n);
 }
 
@@ -162,18 +165,21 @@ function createBuildings() {
   let t2CArray = []; // col2 array for cube
   let t3CArray = []; // col2 array for cube
   let colorsCArray = []; // colors array for cube
+  let typeCArray = []; // type array for cube
 
   let t0PArray = []; // col0 array for pentagon
   let t1PArray = []; // col1 array for pentagon
   let t2PArray = []; // col2 array for pentagon
   let t3PArray = []; // col2 array for pentagon
   let colorsPArray = []; // colors array for pentagon
+  let typePArray = []; // type array for pentagon
 
   let t0HArray = []; // col0 array for hexagon
   let t1HArray = []; // col1 array for hexagon
   let t2HArray = []; // col2 array for hextagon
   let t3HArray = []; // col2 array for hexagon
   let colorsHArray = []; // colors array for hexagon
+  let typeHArray = []; // type array for hexagon
 
   let numC = 0; // number of cubes
   let numP = 0; // number of pentagons
@@ -204,6 +210,7 @@ function createBuildings() {
       colorsCArray.push(0.0);
       colorsCArray.push(1.0);
       colorsCArray.push(1.0);
+      typeCArray.push(3.0);
       numC++;
     } else if (buildingIdx[i] == 1) {
         t0PArray.push(mat[0]);
@@ -226,6 +233,7 @@ function createBuildings() {
         colorsPArray.push(0.0);
         colorsPArray.push(1.0);
         colorsPArray.push(1.0);
+        typePArray.push(3.0);
         numP++;
     } else if (buildingIdx[i] == 2) {
         t0HArray.push(mat[0]);
@@ -248,6 +256,7 @@ function createBuildings() {
         colorsHArray.push(1.0);
         colorsHArray.push(0.0);
         colorsHArray.push(1.0);
+        typeHArray.push(3.0);
         numH++;
     }
   }
@@ -258,7 +267,8 @@ function createBuildings() {
   let t2Cube: Float32Array = new Float32Array(t2CArray);
   let t3Cube: Float32Array = new Float32Array(t3CArray);
   let colCube: Float32Array = new Float32Array(colorsCArray);
-  cube.setInstanceVBOs(t0Cube, t1Cube, t2Cube, t3Cube, colCube);
+  let typeCube: Float32Array = new Float32Array(typeCArray);
+  cube.setInstanceVBOs(t0Cube, t1Cube, t2Cube, t3Cube, colCube, typeCube);
   cube.setNumInstances(numC);
 
   // create pentagon instances
@@ -267,7 +277,8 @@ function createBuildings() {
   let t2Pen: Float32Array = new Float32Array(t2PArray);
   let t3Pen: Float32Array = new Float32Array(t3PArray);
   let colPen: Float32Array = new Float32Array(colorsPArray);
-  pentagon.setInstanceVBOs(t0Pen, t1Pen, t2Pen, t3Pen, colPen);
+  let typePen: Float32Array = new Float32Array(typePArray);
+  pentagon.setInstanceVBOs(t0Pen, t1Pen, t2Pen, t3Pen, colPen, typePen);
   pentagon.setNumInstances(numP);  
 
   // create hex instances
@@ -276,7 +287,8 @@ function createBuildings() {
   let t2Hex: Float32Array = new Float32Array(t2HArray);
   let t3Hex: Float32Array = new Float32Array(t3HArray);
   let colHex: Float32Array = new Float32Array(colorsHArray);
-  hexagon.setInstanceVBOs(t0Hex, t1Hex, t2Hex, t3Hex, colHex);
+  let typeHex: Float32Array = new Float32Array(typeHArray);
+  hexagon.setInstanceVBOs(t0Hex, t1Hex, t2Hex, t3Hex, colHex, typeHex);
   hexagon.setNumInstances(numH);
 }
 
@@ -286,12 +298,14 @@ function setMarker() {
   let t2Array = [0, 0, 1, 0]; // col2 array
   let t3Array = [controls.eventXCoor, 0, controls.eventYCoor, 1]; // col2 array
   let colorsArray = [0, 1, 0, 1]; // colors array
+  let typesArray = [2];
   let t0: Float32Array = new Float32Array(t0Array);
   let t1: Float32Array = new Float32Array(t1Array);
   let t2: Float32Array = new Float32Array(t2Array);
   let t3: Float32Array = new Float32Array(t3Array);
   let colors: Float32Array = new Float32Array(colorsArray);
-  marker.setInstanceVBOs(t0, t1, t2, t3, colors);
+  let types: Float32Array = new Float32Array(typesArray);
+  marker.setInstanceVBOs(t0, t1, t2, t3, colors, types);
   marker.setNumInstances(1);
 }
 

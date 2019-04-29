@@ -15,10 +15,12 @@ in vec4 vs_T1; // second column of transform matrix
 in vec4 vs_T2; // third column of transform matrix
 in vec4 vs_T3; // fourth column of transform matrix
 in vec2 vs_UV; // Non-instanced, and presently unused in main(). Feel free to use it for your meshes.
+in float vs_Type;
 
 out vec4 fs_Pos;
 out vec4 fs_Nor;
 out vec4 fs_Col;
+out float fs_Type;
 
 out float fs_Sine;
 
@@ -40,6 +42,7 @@ void main()
   // 	vs_T1.x != 0.0 || vs_T1.y != 0.0 || vs_T1.z != 0.0 ||
   // 	vs_T2.x != 0.0 || vs_T2.y != 0.0 || vs_T2.z != 0.0 ||
   // 	vs_T3.x != 0.0 || vs_T3.y != 0.0 || vs_T3.z != 0.0) {
+  fs_Type = vs_Type;
   if (u_Mode == 0.0) { // instances
   	mat4 T = mat4(vs_T0, vs_T1, vs_T2, vs_T3);
   	if (vs_Nor.x != 0.0 || vs_Nor.y != 0.0 || vs_Nor.z != 0.0) {

@@ -8,6 +8,7 @@ uniform float u_Mode;
 in vec4 fs_Pos;
 in vec4 fs_Nor;
 in vec4 fs_Col;
+in float fs_Type;
 
 in float fs_Sine;
 
@@ -22,6 +23,10 @@ float random (vec2 p) {
     return fract(sin(dot(p.xy,
                          vec2(12.9898,78.233)))*
         43758.5453123);
+}
+
+float square_wave(float x, float freq, float amplitude) {
+    return abs(float(int(floor(x * freq)) % 2) * amplitude);
 }
 
 float noise (vec2 p) {
@@ -103,22 +108,24 @@ void main()
     // }
     if (u_Mode == 0.0) {
         out_Col = fs_Col;
-    } else if (u_Mode == 1.0) {
+    } 
+    if (u_Mode == 1.0) {
         //out_Col = fs_Col;
         float c = 0.6 * fbm(vec2(fs_Pos.x*0.05, fs_Pos.z*0.05), 3);
         out_Col = vec4(vec3(c), 1.0);
-    } else if (u_Mode == 2.0) {
-        float t = u_Time * 0.005;
+    } 
+    if (u_Mode == 2.0) {
+        float t = u_Time * 0.5;
         vec2 st = gl_FragCoord.xy/u_Dimensions.xy*3.;
         vec3 color = vec3(0.0);
 
         vec2 q = vec2(0.);
-        q.x = fbm( st + 0.00*t, 5);
-        q.y = fbm( st + vec2(1.0), 5);
+        q.x = fbm( st + 0.00*t, 2);
+        q.y = fbm( st + vec2(1.0), 2);
 
         vec2 r = vec2(0.);
-        r.x = fbm( st + 1.0*q + vec2(1.7,9.2)+ 0.15*t, 5 );
-        r.y = fbm( st + 1.0*q + vec2(8.3,2.8)+ 0.126*t, 5);
+        r.x = fbm( st + 1.0*q + vec2(1.7,9.2)+ 0.15*t, 2 );
+        r.y = fbm( st + 1.0*q + vec2(8.3,2.8)+ 0.126*t, 2);
 
         float f = fbm(st+r, 5);
 
@@ -134,6 +141,10 @@ void main()
                     vec3(0.666667,1,1),
                     clamp(length(r.x),0.0,1.0));
 
-        out_Col = vec4((f*f*f+.6*f*f+.5*f)*color.x, 0.0, 0.0,1.);
+        out_Col = vec4((f*f*f+.6*f*f+.5*f)*color.x, (f*f*f+.6*f*f+.5*f)*color.y,(f*f*f+.6*f*f+.5*f)*color.z,1.);
+
+    }
+    if (fs_Type == 3.0) {
+        out_Col = vec4(vec3(square_wave(fs_Pos.y, 2.0, 5.0)), 1.0);
     }
 }

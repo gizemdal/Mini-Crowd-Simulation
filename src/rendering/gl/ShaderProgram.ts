@@ -29,6 +29,7 @@ class ShaderProgram {
   attrT1: number;
   attrT2: number;
   attrT3: number;
+  attrType: number;
 
   unifModel: WebGLUniformLocation;
   unifModelInvTr: WebGLUniformLocation;
@@ -58,6 +59,7 @@ class ShaderProgram {
     this.attrT2 = gl.getAttribLocation(this.prog, "vs_T2");
     this.attrT3 = gl.getAttribLocation(this.prog, "vs_T3");
     this.attrUV = gl.getAttribLocation(this.prog, "vs_UV");
+    this.attrType = gl.getAttribLocation(this.prog, "vs_Type");
 
     this.unifModel      = gl.getUniformLocation(this.prog, "u_Model");
     this.unifModelInvTr = gl.getUniformLocation(this.prog, "u_ModelInvTr");
@@ -173,6 +175,12 @@ class ShaderProgram {
       gl.vertexAttribDivisor(this.attrUV, 0); // Advance 1 index in pos VBO for each vertex
     }
 
+    if (this.attrType != -1 && d.bindType()) {
+      gl.enableVertexAttribArray(this.attrType);
+      gl.vertexAttribPointer(this.attrType, 1, gl.FLOAT, false, 0, 0);
+      gl.vertexAttribDivisor(this.attrType, 1); // Advance 1 index in pos VBO for each vertex
+    }
+
     d.bindIdx();
     if (type == 0) {
       gl.drawElements(d.drawMode(), d.elemCount(), gl.UNSIGNED_INT, 0);
@@ -189,6 +197,7 @@ class ShaderProgram {
     if (this.attrT2 != -1) gl.disableVertexAttribArray(this.attrT2);
     if (this.attrT3 != -1) gl.disableVertexAttribArray(this.attrT3);
     if (this.attrUV != -1) gl.disableVertexAttribArray(this.attrUV);
+    if (this.attrType != -1) gl.disableVertexAttribArray(this.attrType);
   }
 };
 

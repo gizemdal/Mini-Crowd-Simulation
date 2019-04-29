@@ -12,6 +12,7 @@ abstract class Drawable {
   bufT2: WebGLBuffer;
   bufT3: WebGLBuffer;
   bufUV: WebGLBuffer;
+  bufType: WebGLBuffer;
 
   idxBound: boolean = false;
   posBound: boolean = false;
@@ -22,6 +23,7 @@ abstract class Drawable {
   t2Bound: boolean = false;
   t3Bound: boolean = false;
   uvBound: boolean = false;
+  typeBound: boolean = false;
 
   numInstances: number = 0; // How many instances of this Drawable the shader program should draw
   
@@ -37,6 +39,7 @@ abstract class Drawable {
     gl.deleteBuffer(this.bufT2);
     gl.deleteBuffer(this.bufT3);
     gl.deleteBuffer(this.bufUV);
+    gl.deleteBuffer(this.bufType);
   }
 
   generateIdx() {
@@ -82,6 +85,11 @@ abstract class Drawable {
   generateUV() {
     this.uvBound = true;
     this.bufUV = gl.createBuffer();
+  }
+
+  generateType() {
+    this.typeBound = true;
+    this.bufType = gl.createBuffer();
   }
 
   bindIdx(): boolean {
@@ -145,6 +153,13 @@ abstract class Drawable {
       gl.bindBuffer(gl.ARRAY_BUFFER, this.bufUV);
     }
     return this.uvBound;
+  }
+
+  bindType(): boolean {
+    if (this.typeBound) {
+      gl.bindBuffer(gl.ARRAY_BUFFER, this.bufType);
+    }
+    return this.typeBound;
   }
 
   elemCount(): number {
