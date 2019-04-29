@@ -14,6 +14,8 @@ Resources: My main resources include my old implementations from previous assign
 ## End Goal:
 My end goal for this project is to build a "realistic" crowd simulation environment where agents move around based on not only location occupancy/vacancy but also personal goals and events happening around the city.
 
+![](reference/remove3.png)
+
 ## Features and Techniques:
 The simulation consists of a group of agents (the number set initially is 75), procedurally generated buildings and a terrain plane on which the simulation happens.
 
@@ -53,6 +55,10 @@ The control menu allows the user to change the building density in the city as w
 
 ![](progress/near.png)
 
-### View from latest iteration:
+### An event happening in the city:
 
-![](reference/remove3.png)
+![](reference/event1.png)
+
+### Multiple events happening in the city:
+
+![](reference/threeevents.png)
