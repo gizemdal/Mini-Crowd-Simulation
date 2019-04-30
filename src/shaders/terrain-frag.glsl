@@ -77,6 +77,7 @@ void main()
     // float lightIntensity1 = diffuseTerm1 + ambientTerm;
     // float lightIntensity2 = diffuseTerm2 + ambientTerm;
     float lightIntensity = diffuseTerm3 + ambientTerm;
+    float specularIntensity = max(pow(dot(normalize(fs_LightVec3), normalize(fs_Nor)), 30.0), 0.0);
     //float lightIntensity = ((lightIntensity2 + lightIntensity3) / 2.0);
     if (u_Mode == 0.0) {
         out_Col = vec4(fs_Col.xyz * lightIntensity, 1.0);
@@ -114,9 +115,16 @@ void main()
                     clamp(length(r.x),0.0,1.0));
 
         out_Col = vec4((f*f*f+.6*f*f+.5*f)*color.x, (f*f*f+.6*f*f+.5*f)*color.y,(f*f*f+.6*f*f+.5*f)*color.z,1.);
-
     }
     if (fs_Type == 3.0) {
-        out_Col = vec4(clamp(vec3(square_wave(fs_Pos.y, 2.0, 5.0)) + 0.5, 0.0, 1.0) * lightIntensity, 1.0);
+        vec3 s = vec3(square_wave(fs_Pos.y, 2.0, 5.0));
+        if (length(s) == 0.0) {
+            float d = fs_Pos.y;
+            out_Col = vec4(0.0, 0.5 * sin(mod(u_Time, 200.0) * 0.02 * d / 5.0) + 0.2, 0.5 * (sin(mod(u_Time, 200.0) * 0.02 * d / 5.0)) + 0.2, 1.0);
+        }
+        else {
+            vec3 b = clamp(s + 0.2, 0.0, 1.0);
+            out_Col = vec4(b * lightIntensity + specularIntensity, 1.0);
+        }
     }
 }

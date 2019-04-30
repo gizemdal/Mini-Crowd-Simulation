@@ -6763,21 +6763,24 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 const controls = {
     'Load Scene': loadScene,
     buildingDensity: 5,
+    numAgents: 75,
     eventKeyword: 'food',
     eventXCoor: 0,
     eventYCoor: 0,
-    eventScope: 10,
     eventName: 'default',
     'Add Event': addEvent,
     eventToRemove: 'default',
     'Remove Event': removeEvent,
+    'Stop Simulation': stopSimulation,
 };
 let square;
 let plane;
 let planePos;
 let prevBuildingDensity = 5;
+let prevNumAgent = 75;
 let prevX = 0;
 let prevY = 0;
+let isStop = false;
 let time = 0.0;
 let agent; // agent instance
 let simulation; // simulation instance
@@ -6814,7 +6817,7 @@ function loadScene() {
     // Marker for event adding
     marker = new __WEBPACK_IMPORTED_MODULE_5__geometry_Mesh__["a" /* default */](obj0, __WEBPACK_IMPORTED_MODULE_0_gl_matrix__["c" /* vec3 */].fromValues(controls.eventXCoor, 0, controls.eventYCoor));
     marker.create();
-    simulation = new __WEBPACK_IMPORTED_MODULE_8__Simulation__["a" /* default */](75, plane.scale, 0, controls.buildingDensity * 5);
+    simulation = new __WEBPACK_IMPORTED_MODULE_8__Simulation__["a" /* default */](controls.numAgents, plane.scale, 0, controls.buildingDensity * 5);
     planePos = __WEBPACK_IMPORTED_MODULE_0_gl_matrix__["b" /* vec2 */].fromValues(0, 0);
     // Initial call to instanced rendering
     instanceRendering();
@@ -6825,13 +6828,16 @@ function loadScene() {
 }
 function addEvent() {
     if (!simulation.doesEventExist(controls.eventName)) {
-        simulation.addEvent(__WEBPACK_IMPORTED_MODULE_0_gl_matrix__["c" /* vec3 */].fromValues(controls.eventXCoor, 0, controls.eventYCoor), controls.eventKeyword, controls.eventName, controls.eventScope);
+        simulation.addEvent(__WEBPACK_IMPORTED_MODULE_0_gl_matrix__["c" /* vec3 */].fromValues(controls.eventXCoor, 0, controls.eventYCoor), controls.eventKeyword, controls.eventName, 20);
     }
 }
 function removeEvent() {
     if (simulation.events.length > 0 && simulation.doesEventExist(controls.eventToRemove)) {
         simulation.removeEvent(controls.eventToRemove);
     }
+}
+function stopSimulation() {
+    isStop = !isStop;
 }
 function instanceRendering() {
     // generate the agents
@@ -7010,7 +7016,7 @@ function setMarker() {
     let t0Array = [1, 0, 0, 0]; // col0 array
     let t1Array = [0, 1, 0, 0]; // col1 array
     let t2Array = [0, 0, 1, 0]; // col2 array
-    let t3Array = [controls.eventXCoor, 0, controls.eventYCoor, 1]; // col2 array
+    let t3Array = [controls.eventXCoor, 2, controls.eventYCoor, 1]; // col2 array
     let colorsArray = [0, 1, 0, 1]; // colors array
     let typesArray = [2];
     let t0 = new Float32Array(t0Array);
@@ -7034,16 +7040,17 @@ function main() {
     const gui = new __WEBPACK_IMPORTED_MODULE_2_dat_gui__["GUI"]();
     gui.add(controls, 'Load Scene');
     gui.add(controls, 'buildingDensity', 0, 7).step(1);
+    gui.add(controls, 'numAgents', 10, 100).step(1);
     var eventAdd = gui.addFolder('Add Event');
     eventAdd.add(controls, 'eventKeyword', ['food', 'concert', 'sports', 'protest', 'exposition']);
     eventAdd.add(controls, 'eventXCoor', -dimensions[0] / 2 + 5, dimensions[0] / 2 - 5).step(0.1);
     eventAdd.add(controls, 'eventYCoor', -dimensions[1] / 2 + 5, dimensions[1] / 2 - 5).step(0.1);
-    eventAdd.add(controls, 'eventScope', 5, 100).step(5);
     eventAdd.add(controls, 'eventName');
     eventAdd.add(controls, 'Add Event');
     var eventRemove = gui.addFolder('Remove Event');
     eventRemove.add(controls, 'eventToRemove');
     eventRemove.add(controls, 'Remove Event');
+    gui.add(controls, 'Stop Simulation');
     // get canvas and webgl context
     const canvas = document.getElementById('canvas');
     const gl = canvas.getContext('webgl2');
@@ -7077,6 +7084,10 @@ function main() {
             prevBuildingDensity = controls.buildingDensity;
             loadScene();
         }
+        if (controls.numAgents != prevNumAgent) {
+            prevNumAgent = controls.numAgents;
+            loadScene();
+        }
         if (controls.eventXCoor != prevX) {
             prevX = controls.eventXCoor;
             setMarker();
@@ -7096,7 +7107,9 @@ function main() {
         renderer.render(camera, lambert, [
             agent, cube, pentagon, hexagon, marker,
         ], time, 1);
-        simulation.simulationStep(10); // simulation step
+        if (!isStop) {
+            simulation.simulationStep(10); // simulation step
+        }
         stats.end();
         // Tell the browser to call `tick` again whenever it renders a new frame
         time += 1.0;
@@ -17053,7 +17066,7 @@ class Simulation {
                 }
             }
             // create a marker at this location
-            var posM = __WEBPACK_IMPORTED_MODULE_0_gl_matrix__["c" /* vec3 */].fromValues(x - this.dimensions[0] / 2, this.height, z - this.dimensions[1] / 2);
+            var posM = __WEBPACK_IMPORTED_MODULE_0_gl_matrix__["c" /* vec3 */].fromValues(x - this.dimensions[0] / 2, this.height + 2.0, z - this.dimensions[1] / 2);
             var newMarker = new __WEBPACK_IMPORTED_MODULE_5__Marker__["a" /* default */](posM);
             this.markers.push(newMarker);
         }
@@ -17069,7 +17082,22 @@ class Simulation {
             }
             var posA = this.markers[idx].pos;
             var e = getRandomInt(eventKeywords.length);
-            var colA = __WEBPACK_IMPORTED_MODULE_0_gl_matrix__["c" /* vec3 */].fromValues(Math.min(e * 0.12 + (17 % e) * 0.05, 1), Math.min(e * 0.15 + (7 % e) * 0.04, 1), Math.min(e * 0.21 + (28 % e) * 0.07, 1)); // make all agents initially red
+            var colA;
+            if (e == 0) { // food
+                colA = __WEBPACK_IMPORTED_MODULE_0_gl_matrix__["c" /* vec3 */].fromValues(1, 1, 0);
+            }
+            else if (e == 1) { // concert
+                colA = __WEBPACK_IMPORTED_MODULE_0_gl_matrix__["c" /* vec3 */].fromValues(1, 0, 1);
+            }
+            else if (e == 2) { // sports
+                colA = __WEBPACK_IMPORTED_MODULE_0_gl_matrix__["c" /* vec3 */].fromValues(1, 0, 0);
+            }
+            else if (e == 3) { // protest
+                colA = __WEBPACK_IMPORTED_MODULE_0_gl_matrix__["c" /* vec3 */].fromValues(0, 0, 1);
+            }
+            else if (e == 4) { // exhibition
+                colA = __WEBPACK_IMPORTED_MODULE_0_gl_matrix__["c" /* vec3 */].fromValues(0, 1, 1);
+            }
             var newA = new __WEBPACK_IMPORTED_MODULE_2__Agent__["a" /* default */](posA, colA, idx);
             // give an arbitrary interest to the agent (picked from the list)
             newA.addInterest(eventKeywords[e]);
@@ -17947,6 +17975,7 @@ function forEach(a, stride, offset, count, fn, arg) {
 let idCount = 1; // generate a unique id for each agent
 class Agent {
     constructor(pos, col, mId) {
+        this.isFat = false; // not initially fat
         this.id = idCount;
         idCount++; // increment the id counter
         this.pos = pos;
@@ -17981,7 +18010,8 @@ class Agent {
     }
     // Calculate the corresponding transformation matrix for instanced rendering
     computeMatrix() {
-        var trans = __WEBPACK_IMPORTED_MODULE_0_gl_matrix__["a" /* mat4 */].fromValues(1.0, 0.0, 0.0, 0.0, 0.0, 2.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, this.pos[0], this.pos[1], this.pos[2], 1.0);
+        var h = 2.0;
+        var trans = __WEBPACK_IMPORTED_MODULE_0_gl_matrix__["a" /* mat4 */].fromValues(1.0, 0.0, 0.0, 0.0, 0.0, h, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, this.pos[0], this.pos[1], this.pos[2], 1.0);
         this.transMat = Object(__WEBPACK_IMPORTED_MODULE_1_gl_mat4__["scale"])(trans, trans, __WEBPACK_IMPORTED_MODULE_0_gl_matrix__["c" /* vec3 */].fromValues(1.0, 1.0, 1.0));
     }
     // Calculate the distance between two agents
@@ -18863,13 +18893,13 @@ class ShaderProgram {
 /* 131 */
 /***/ (function(module, exports) {
 
-module.exports = "#version 300 es\n\n\nuniform mat4 u_Model;\nuniform mat4 u_ModelInvTr;\nuniform mat4 u_ViewProj;\nuniform vec2 u_PlanePos; // Our location in the virtual world displayed by the plane\nuniform float u_Mode;\n\nin vec4 vs_Pos;\nin vec4 vs_Nor;\nin vec4 vs_Col;\nin vec4 vs_T0; // first column of transform matrix\nin vec4 vs_T1; // second column of transform matrix\nin vec4 vs_T2; // third column of transform matrix\nin vec4 vs_T3; // fourth column of transform matrix\nin vec2 vs_UV; // Non-instanced, and presently unused in main(). Feel free to use it for your meshes.\nin float vs_Type;\n\nout vec4 fs_Pos;\nout vec4 fs_Nor;\nout vec4 fs_Col;\nout float fs_Type;\n\nout vec4 fs_LightVec1; \nout vec4 fs_LightVec2;\nout vec4 fs_LightVec3;\n\nvec3 lightPos1 = vec3(0.0, 100.0, 0.0);\nvec3 lightPos2 = vec3(30.0, 200.0, -50.0);\nvec3 lightPos3 = vec3(20.0, 50.0, -80.0);\n\nfloat random1( vec2 p , vec2 seed) {\n  return fract(sin(dot(p + seed, vec2(127.1, 311.7))) * 43758.5453);\n}\n\nfloat random1( vec3 p , vec3 seed) {\n  return fract(sin(dot(p + seed, vec3(987.654, 123.456, 531.975))) * 85734.3545);\n}\n\nvec2 random2( vec2 p , vec2 seed) {\n  return fract(sin(vec2(dot(p + seed, vec2(311.7, 127.1)), dot(p + seed, vec2(269.5, 183.3)))) * 85734.3545);\n}\n\nvoid main()\n{\n  fs_Type = vs_Type;\n  if (u_Mode == 0.0) { // instances\n  \tmat4 T = mat4(vs_T0, vs_T1, vs_T2, vs_T3);\n  \tif (vs_Nor.x != 0.0 || vs_Nor.y != 0.0 || vs_Nor.z != 0.0) {\n  \t\tfs_Nor = normalize(vec4(transpose(inverse(T)) * vs_Nor)); \n  \t} else {\n  \t\tfs_Nor = vec4(0.0, 0.0, 0.0, 0.0);\n  \t}\n  \tvec4 modelposition = T * vs_Pos;\n  \tfs_Col = vs_Col;\n  \tfs_Pos = modelposition;\n    fs_LightVec1 = vec4(lightPos1, 1.0) - modelposition;\n    fs_LightVec2 = vec4(lightPos2, 1.0) - modelposition;\n    fs_LightVec3 = vec4(lightPos3, 1.0) - modelposition;\n  \tgl_Position = u_ViewProj * modelposition;\n  } else if (u_Mode == 1.0) {// } else { // plane\n  \tfs_Pos = vs_Pos;\n  \tfs_Col = vec4(1.0);\n  \tvec4 modelposition = vec4(vs_Pos.x, vs_Pos.y, vs_Pos.z, 1.0);\n  \tmodelposition = u_Model * modelposition;\n    fs_LightVec1 = vec4(lightPos1, 1.0) - modelposition;\n    fs_LightVec2 = vec4(lightPos2, 1.0) - modelposition;\n    fs_LightVec3 = vec4(lightPos3, 1.0) - modelposition;\n  \tgl_Position = u_ViewProj * modelposition;\n  } else if (u_Mode == 2.0) { // background\n    gl_Position = vs_Pos;\n  }\n}\n"
+module.exports = "#version 300 es\n\n\nuniform mat4 u_Model;\nuniform mat4 u_ModelInvTr;\nuniform mat4 u_ViewProj;\nuniform vec2 u_PlanePos; // Our location in the virtual world displayed by the plane\nuniform float u_Mode;\n\nin vec4 vs_Pos;\nin vec4 vs_Nor;\nin vec4 vs_Col;\nin vec4 vs_T0; // first column of transform matrix\nin vec4 vs_T1; // second column of transform matrix\nin vec4 vs_T2; // third column of transform matrix\nin vec4 vs_T3; // fourth column of transform matrix\nin vec2 vs_UV; // Non-instanced, and presently unused in main(). Feel free to use it for your meshes.\nin float vs_Type;\n\nout vec4 fs_Pos;\nout vec4 fs_Nor;\nout vec4 fs_Col;\nout float fs_Type;\n\nout vec4 fs_LightVec1; \nout vec4 fs_LightVec2;\nout vec4 fs_LightVec3;\n\nvec3 lightPos1 = vec3(0.0, 100.0, 0.0);\nvec3 lightPos2 = vec3(30.0, 200.0, -50.0);\nvec3 lightPos3 = vec3(80.0, 50.0, -20.0);\n\nfloat random1( vec2 p , vec2 seed) {\n  return fract(sin(dot(p + seed, vec2(127.1, 311.7))) * 43758.5453);\n}\n\nfloat random1( vec3 p , vec3 seed) {\n  return fract(sin(dot(p + seed, vec3(987.654, 123.456, 531.975))) * 85734.3545);\n}\n\nvec2 random2( vec2 p , vec2 seed) {\n  return fract(sin(vec2(dot(p + seed, vec2(311.7, 127.1)), dot(p + seed, vec2(269.5, 183.3)))) * 85734.3545);\n}\n\nfloat random (vec2 p) {\n    return fract(sin(dot(p.xy,\n                         vec2(12.9898,78.233)))*\n        43758.5453123);\n}\n\nfloat noise (vec2 p) {\n    vec2 i = floor(p);\n    vec2 f = fract(p);\n\n    // Four corners in 2D of a tile\n    float a = random(i);\n    float b = random(i + vec2(1.0, 0.0));\n    float c = random(i + vec2(0.0, 1.0));\n    float d = random(i + vec2(1.0, 1.0));\n\n    vec2 u = f * f * (3.0 - 2.0 * f);\n\n    return mix(a, b, u.x) +\n            (c - a)* u.y * (1.0 - u.x) +\n            (d - b) * u.x * u.y;\n}\n\nfloat fbm (vec2 p, int octaves) {\n    float v = 0.0;\n    float a = 0.5;\n    vec2 shift = vec2(100.0);\n    // Rotate to reduce axial bias\n    mat2 rot = mat2(cos(0.5), sin(0.5),\n                    -sin(0.5), cos(0.50));\n    for (int i = 0; i < octaves; ++i) {\n        v += a * noise(p);\n        p= rot * p * 2.0 + shift;\n        a *= 0.5;\n    }\n    return v;\n}\n\nvoid main()\n{\n  fs_Type = vs_Type;\n  if (u_Mode == 0.0) { // instances\n  \tmat4 T = mat4(vs_T0, vs_T1, vs_T2, vs_T3);\n  \tif (vs_Nor.x != 0.0 || vs_Nor.y != 0.0 || vs_Nor.z != 0.0) {\n  \t\tfs_Nor = T * vs_Nor; // normalize(vec4(transpose(inverse(T)) * vs_Nor)); \n  \t} else {\n  \t\tfs_Nor = vec4(0.0, 0.0, 0.0, 0.0);\n  \t}\n  \tvec4 modelposition = T * vs_Pos;\n  \tfs_Col = vs_Col;\n  \tfs_Pos = modelposition;\n    fs_LightVec1 = vec4(lightPos1, 1.0) - modelposition;\n    fs_LightVec2 = vec4(lightPos2, 1.0) - modelposition;\n    fs_LightVec3 = vec4(lightPos3, 1.0);\n  \tgl_Position = u_ViewProj * modelposition;\n  } else if (u_Mode == 1.0) { // plane\n  \tfs_Pos = vs_Pos;\n  \tfs_Col = vec4(1.0);\n  \tvec4 modelposition = vec4(vs_Pos.x, vs_Pos.y * sin(fbm(vec2(vs_Pos.xz), 2)), vs_Pos.z, 1.0);\n  \tmodelposition = u_Model * modelposition;\n    fs_LightVec1 = vec4(lightPos1, 1.0) - modelposition;\n    fs_LightVec2 = vec4(lightPos2, 1.0) - modelposition;\n    fs_LightVec3 = vec4(lightPos3, 1.0);\n  \tgl_Position = u_ViewProj * modelposition;\n  } else if (u_Mode == 2.0) { // background\n    gl_Position = vs_Pos;\n  }\n}\n"
 
 /***/ }),
 /* 132 */
 /***/ (function(module, exports) {
 
-module.exports = "#version 300 es\nprecision highp float;\n\nuniform vec2 u_PlanePos; // Our location in the virtual world displayed by the plane\nuniform vec2 u_Dimensions; // Dimensions of the plane\nuniform float u_Time;\nuniform float u_Mode;\nin vec4 fs_Pos;\nin vec4 fs_Nor;\nin vec4 fs_Col;\nin float fs_Type;\nin vec4 fs_LightVec1;\nin vec4 fs_LightVec2;\nin vec4 fs_LightVec3;\n\nout vec4 out_Col; // This is the final output color that you will see on your\n                  // screen for the pixel that is currently being processed.\n\n// vec2 random2(vec2 p) {\n//     return fract(sin(vec2(dot(p, vec2(127.1, 311.7)), dot(p, vec2(269.5, 183.3)))) * 43758.5453);\n// }\n\nfloat random (vec2 p) {\n    return fract(sin(dot(p.xy,\n                         vec2(12.9898,78.233)))*\n        43758.5453123);\n}\n\nfloat square_wave(float x, float freq, float amplitude) {\n    return abs(float(int(floor(x * freq)) % 2) * amplitude);\n}\n\nfloat noise (vec2 p) {\n    vec2 i = floor(p);\n    vec2 f = fract(p);\n\n    // Four corners in 2D of a tile\n    float a = random(i);\n    float b = random(i + vec2(1.0, 0.0));\n    float c = random(i + vec2(0.0, 1.0));\n    float d = random(i + vec2(1.0, 1.0));\n\n    vec2 u = f * f * (3.0 - 2.0 * f);\n\n    return mix(a, b, u.x) +\n            (c - a)* u.y * (1.0 - u.x) +\n            (d - b) * u.x * u.y;\n}\n\nfloat fbm (vec2 p, int octaves) {\n    float v = 0.0;\n    float a = 0.5;\n    vec2 shift = vec2(100.0);\n    // Rotate to reduce axial bias\n    mat2 rot = mat2(cos(0.5), sin(0.5),\n                    -sin(0.5), cos(0.50));\n    for (int i = 0; i < octaves; ++i) {\n        v += a * noise(p);\n        p= rot * p * 2.0 + shift;\n        a *= 0.5;\n    }\n    return v;\n}\n\nvoid main()\n{\n    // float diffuseTerm1 = dot(normalize(fs_Nor), normalize(fs_LightVec1));\n    // float diffuseTerm2 = dot(normalize(fs_Nor), normalize(fs_LightVec2));\n    float diffuseTerm3 = dot(normalize(fs_Nor), normalize(fs_LightVec3));\n    // Avoid negative lighting values\n    // diffuseTerm1 = clamp(diffuseTerm1, 0.0, 1.0);\n    // diffuseTerm2 = clamp(diffuseTerm2, 0.0, 1.0);\n    diffuseTerm3 = clamp(diffuseTerm3, 0.0, 1.0);\n\n    float ambientTerm = 0.2;\n\n    // float lightIntensity1 = diffuseTerm1 + ambientTerm;\n    // float lightIntensity2 = diffuseTerm2 + ambientTerm;\n    float lightIntensity = diffuseTerm3 + ambientTerm;\n    //float lightIntensity = ((lightIntensity2 + lightIntensity3) / 2.0);\n    if (u_Mode == 0.0) {\n        out_Col = vec4(fs_Col.xyz * lightIntensity, 1.0);\n    } \n    if (u_Mode == 1.0) {\n        //out_Col = fs_Col;\n        float c = 0.6 * fbm(vec2(fs_Pos.x*0.05, fs_Pos.z*0.05), 3);\n        out_Col = vec4(vec3(c), 1.0);\n    } \n    if (u_Mode == 2.0) {\n        float t = u_Time * 0.5;\n        vec2 st = gl_FragCoord.xy/u_Dimensions.xy*3.;\n        vec3 color = vec3(0.0);\n\n        vec2 q = vec2(0.);\n        q.x = fbm( st + 0.00*t, 2);\n        q.y = fbm( st + vec2(1.0), 2);\n\n        vec2 r = vec2(0.);\n        r.x = fbm( st + 1.0*q + vec2(1.7,9.2)+ 0.15*t, 2 );\n        r.y = fbm( st + 1.0*q + vec2(8.3,2.8)+ 0.126*t, 2);\n\n        float f = fbm(st+r, 5);\n\n        color = mix(vec3(0.101961,0.619608,0.666667),\n                    vec3(0.666667,0.666667,0.498039),\n                    clamp((f*f)*4.0,0.0,1.0));\n\n        color = mix(color,\n                    vec3(0,0,0.164706),\n                    clamp(length(q),0.0,1.0));\n\n        color = mix(color,\n                    vec3(0.666667,1,1),\n                    clamp(length(r.x),0.0,1.0));\n\n        out_Col = vec4((f*f*f+.6*f*f+.5*f)*color.x, (f*f*f+.6*f*f+.5*f)*color.y,(f*f*f+.6*f*f+.5*f)*color.z,1.);\n\n    }\n    if (fs_Type == 3.0) {\n        out_Col = vec4(clamp(vec3(square_wave(fs_Pos.y, 2.0, 5.0)) + 0.5, 0.0, 1.0) * lightIntensity, 1.0);\n    }\n}\n"
+module.exports = "#version 300 es\nprecision highp float;\n\nuniform vec2 u_PlanePos; // Our location in the virtual world displayed by the plane\nuniform vec2 u_Dimensions; // Dimensions of the plane\nuniform float u_Time;\nuniform float u_Mode;\nin vec4 fs_Pos;\nin vec4 fs_Nor;\nin vec4 fs_Col;\nin float fs_Type;\nin vec4 fs_LightVec1;\nin vec4 fs_LightVec2;\nin vec4 fs_LightVec3;\n\nout vec4 out_Col; // This is the final output color that you will see on your\n                  // screen for the pixel that is currently being processed.\n\n// vec2 random2(vec2 p) {\n//     return fract(sin(vec2(dot(p, vec2(127.1, 311.7)), dot(p, vec2(269.5, 183.3)))) * 43758.5453);\n// }\n\nfloat random (vec2 p) {\n    return fract(sin(dot(p.xy,\n                         vec2(12.9898,78.233)))*\n        43758.5453123);\n}\n\nfloat square_wave(float x, float freq, float amplitude) {\n    return abs(float(int(floor(x * freq)) % 2) * amplitude);\n}\n\nfloat noise (vec2 p) {\n    vec2 i = floor(p);\n    vec2 f = fract(p);\n\n    // Four corners in 2D of a tile\n    float a = random(i);\n    float b = random(i + vec2(1.0, 0.0));\n    float c = random(i + vec2(0.0, 1.0));\n    float d = random(i + vec2(1.0, 1.0));\n\n    vec2 u = f * f * (3.0 - 2.0 * f);\n\n    return mix(a, b, u.x) +\n            (c - a)* u.y * (1.0 - u.x) +\n            (d - b) * u.x * u.y;\n}\n\nfloat fbm (vec2 p, int octaves) {\n    float v = 0.0;\n    float a = 0.5;\n    vec2 shift = vec2(100.0);\n    // Rotate to reduce axial bias\n    mat2 rot = mat2(cos(0.5), sin(0.5),\n                    -sin(0.5), cos(0.50));\n    for (int i = 0; i < octaves; ++i) {\n        v += a * noise(p);\n        p= rot * p * 2.0 + shift;\n        a *= 0.5;\n    }\n    return v;\n}\n\nvoid main()\n{\n    // float diffuseTerm1 = dot(normalize(fs_Nor), normalize(fs_LightVec1));\n    // float diffuseTerm2 = dot(normalize(fs_Nor), normalize(fs_LightVec2));\n    float diffuseTerm3 = dot(normalize(fs_Nor), normalize(fs_LightVec3));\n    // Avoid negative lighting values\n    // diffuseTerm1 = clamp(diffuseTerm1, 0.0, 1.0);\n    // diffuseTerm2 = clamp(diffuseTerm2, 0.0, 1.0);\n    diffuseTerm3 = clamp(diffuseTerm3, 0.0, 1.0);\n\n    float ambientTerm = 0.2;\n\n    // float lightIntensity1 = diffuseTerm1 + ambientTerm;\n    // float lightIntensity2 = diffuseTerm2 + ambientTerm;\n    float lightIntensity = diffuseTerm3 + ambientTerm;\n    float specularIntensity = max(pow(dot(normalize(fs_LightVec3), normalize(fs_Nor)), 30.0), 0.0);\n    //float lightIntensity = ((lightIntensity2 + lightIntensity3) / 2.0);\n    if (u_Mode == 0.0) {\n        out_Col = vec4(fs_Col.xyz * lightIntensity, 1.0);\n    } \n    if (u_Mode == 1.0) {\n        //out_Col = fs_Col;\n        float c = 0.6 * fbm(vec2(fs_Pos.x*0.05, fs_Pos.z*0.05), 3);\n        out_Col = vec4(vec3(c), 1.0);\n    } \n    if (u_Mode == 2.0) {\n        float t = u_Time * 0.5;\n        vec2 st = gl_FragCoord.xy/u_Dimensions.xy*3.;\n        vec3 color = vec3(0.0);\n\n        vec2 q = vec2(0.);\n        q.x = fbm( st + 0.00*t, 2);\n        q.y = fbm( st + vec2(1.0), 2);\n\n        vec2 r = vec2(0.);\n        r.x = fbm( st + 1.0*q + vec2(1.7,9.2)+ 0.15*t, 2 );\n        r.y = fbm( st + 1.0*q + vec2(8.3,2.8)+ 0.126*t, 2);\n\n        float f = fbm(st+r, 5);\n\n        color = mix(vec3(0.101961,0.619608,0.666667),\n                    vec3(0.666667,0.666667,0.498039),\n                    clamp((f*f)*4.0,0.0,1.0));\n\n        color = mix(color,\n                    vec3(0,0,0.164706),\n                    clamp(length(q),0.0,1.0));\n\n        color = mix(color,\n                    vec3(0.666667,1,1),\n                    clamp(length(r.x),0.0,1.0));\n\n        out_Col = vec4((f*f*f+.6*f*f+.5*f)*color.x, (f*f*f+.6*f*f+.5*f)*color.y,(f*f*f+.6*f*f+.5*f)*color.z,1.);\n    }\n    if (fs_Type == 3.0) {\n        vec3 s = vec3(square_wave(fs_Pos.y, 2.0, 5.0));\n        if (length(s) == 0.0) {\n            float d = fs_Pos.y;\n            out_Col = vec4(0.0, 0.5 * sin(mod(u_Time, 200.0) * 0.02 * d / 5.0) + 0.2, 0.5 * (sin(mod(u_Time, 200.0) * 0.02 * d / 5.0)) + 0.2, 1.0);\n        }\n        else {\n            vec3 b = clamp(s + 0.2, 0.0, 1.0);\n            out_Col = vec4(b * lightIntensity + specularIntensity, 1.0);\n        }\n    }\n}\n"
 
 /***/ })
 /******/ ]);

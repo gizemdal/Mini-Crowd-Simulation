@@ -18,22 +18,25 @@ import ShaderProgram, {Shader} from './rendering/gl/ShaderProgram';
 const controls = {
   'Load Scene': loadScene, // A function pointer, essentially
   buildingDensity: 5,
+  numAgents: 75,
   eventKeyword: 'food',
   eventXCoor: 0,
   eventYCoor: 0,
-  eventScope: 10,
   eventName: 'default',
   'Add Event': addEvent,
   eventToRemove: 'default',
   'Remove Event': removeEvent,
+  'Stop Simulation' : stopSimulation,
 };
 
 let square: Square;
 let plane : Plane;
 let planePos: vec2;
 let prevBuildingDensity: number = 5;
+let prevNumAgent: number = 75;
 let prevX: number = 0;
 let prevY: number = 0;
+let isStop: boolean = false;
 
 let time = 0.0;
 
@@ -83,7 +86,7 @@ function loadScene() {
   marker = new Mesh(obj0, vec3.fromValues(controls.eventXCoor, 0, controls.eventYCoor));
   marker.create();
 
-  simulation = new Simulation(75, plane.scale, 0, controls.buildingDensity * 5);
+  simulation = new Simulation(controls.numAgents, plane.scale, 0, controls.buildingDensity * 5);
   planePos = vec2.fromValues(0,0);
 
   // Initial call to instanced rendering
@@ -99,7 +102,7 @@ function loadScene() {
 function addEvent() {
   if (!simulation.doesEventExist(controls.eventName)) {
     simulation.addEvent(vec3.fromValues(controls.eventXCoor, 0, controls.eventYCoor),
-     controls.eventKeyword, controls.eventName, controls.eventScope);
+     controls.eventKeyword, controls.eventName, 20);
   }
 }
 
@@ -107,6 +110,10 @@ function removeEvent() {
   if (simulation.events.length > 0 && simulation.doesEventExist(controls.eventToRemove)) {
     simulation.removeEvent(controls.eventToRemove);
   }
+}
+
+function stopSimulation() {
+  isStop = !isStop;
 }
 
 function instanceRendering() {
@@ -206,6 +213,7 @@ function createBuildings() {
       t3CArray.push(mat[13]);
       t3CArray.push(mat[14]);
       t3CArray.push(mat[15]);
+
       colorsCArray.push(1.0);
       colorsCArray.push(0.0);
       colorsCArray.push(1.0);
@@ -296,7 +304,7 @@ function setMarker() {
   let t0Array = [1, 0, 0, 0]; // col0 array
   let t1Array = [0, 1, 0, 0]; // col1 array
   let t2Array = [0, 0, 1, 0]; // col2 array
-  let t3Array = [controls.eventXCoor, 0, controls.eventYCoor, 1]; // col2 array
+  let t3Array = [controls.eventXCoor, 2, controls.eventYCoor, 1]; // col2 array
   let colorsArray = [0, 1, 0, 1]; // colors array
   let typesArray = [2];
   let t0: Float32Array = new Float32Array(t0Array);
@@ -323,16 +331,17 @@ function main() {
   const gui = new DAT.GUI();
   gui.add(controls, 'Load Scene');
   gui.add(controls, 'buildingDensity', 0, 7).step(1);
+  gui.add(controls, 'numAgents', 10, 100).step(1);
   var eventAdd = gui.addFolder('Add Event');
   eventAdd.add(controls, 'eventKeyword', [ 'food', 'concert', 'sports', 'protest', 'exposition' ]);
   eventAdd.add(controls, 'eventXCoor', - dimensions[0] / 2 + 5, dimensions[0] / 2 - 5).step(0.1);
   eventAdd.add(controls, 'eventYCoor', - dimensions[1] / 2 + 5, dimensions[1] / 2 - 5).step(0.1);
-  eventAdd.add(controls, 'eventScope', 5, 100).step(5);
   eventAdd.add(controls, 'eventName');
   eventAdd.add(controls, 'Add Event');
   var eventRemove = gui.addFolder('Remove Event');
   eventRemove.add(controls, 'eventToRemove');
   eventRemove.add(controls, 'Remove Event');
+  gui.add(controls, 'Stop Simulation');
   // get canvas and webgl context
   const canvas = <HTMLCanvasElement> document.getElementById('canvas');
   const gl = <WebGL2RenderingContext> canvas.getContext('webgl2');
@@ -371,6 +380,10 @@ function main() {
       prevBuildingDensity = controls.buildingDensity;
       loadScene();
     }
+    if (controls.numAgents != prevNumAgent) {
+      prevNumAgent = controls.numAgents;
+      loadScene();
+    }
     if (controls.eventXCoor != prevX) {
       prevX = controls.eventXCoor;
       setMarker();
@@ -390,7 +403,9 @@ function main() {
     renderer.render(camera, lambert, [
       agent, cube, pentagon, hexagon, marker,
     ], time, 1);
-    simulation.simulationStep(10); // simulation step
+    if (!isStop) {
+      simulation.simulationStep(10); // simulation step
+    }
     stats.end();
     // Tell the browser to call `tick` again whenever it renders a new frame
     time += 1.0;

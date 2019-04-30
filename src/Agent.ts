@@ -14,6 +14,7 @@ export default class Agent {
 	interests: string[]; // agent's interests
 	markerId: number; // index of the marker where the agent exists
 	currentEvent: number; // id of the current event
+	isFat: boolean = false; // not initially fat
 
 
 	constructor(pos: vec3, col:vec3, mId: number) {
@@ -58,8 +59,9 @@ export default class Agent {
 
 	// Calculate the corresponding transformation matrix for instanced rendering
 	computeMatrix() {
+		var h = 2.0;
 	    var trans = mat4.fromValues(1.0, 0.0, 0.0, 0.0,
-	                                0.0, 2.0, 0.0, 0.0,
+	                                0.0, h, 0.0, 0.0,
 	                                0.0, 0.0, 1.0, 0.0,
 	                                this.pos[0], this.pos[1], this.pos[2], 1.0);
 		this.transMat = scale(trans, trans, vec3.fromValues(1.0, 1.0, 1.0));

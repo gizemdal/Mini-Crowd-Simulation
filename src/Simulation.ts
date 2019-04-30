@@ -97,7 +97,7 @@ export default class Simulation {
 			}
 			// create a marker at this location
 			var posM = vec3.fromValues(x - this.dimensions[0] / 2, 
-									   this.height, 
+									   this.height + 2.0, 
 									   z - this.dimensions[1] / 2);
 			var newMarker = new Marker(posM);
 			this.markers.push(newMarker);
@@ -114,9 +114,18 @@ export default class Simulation {
 			}
 			var posA = this.markers[idx].pos;
 			var e = getRandomInt(eventKeywords.length);
-			var colA = vec3.fromValues(Math.min(e*0.12 + (17 % e)*0.05, 1),
-									   Math.min(e*0.15 + (7 % e)*0.04, 1),
-									   Math.min(e*0.21 + (28 % e)*0.07, 1)); // make all agents initially red
+			var colA: vec3;
+			if (e == 0) { // food
+				colA = vec3.fromValues(1, 1, 0);
+			} else if (e == 1) { // concert
+				colA = vec3.fromValues(1, 0, 1);
+			} else if (e == 2) { // sports
+				colA = vec3.fromValues(1, 0, 0);
+			} else if (e == 3) { // protest
+				colA = vec3.fromValues(0, 0, 1);
+			} else if (e == 4) { // exhibition
+				colA = vec3.fromValues(0, 1, 1);
+			}
 			var newA = new Agent(posA, colA, idx);
 			// give an arbitrary interest to the agent (picked from the list)
 			newA.addInterest(eventKeywords[e]);
