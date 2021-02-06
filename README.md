@@ -1,20 +1,15 @@
 # Crowd Simulation
-Final project for CIS566 (Procedural Computer Graphics) Milestone
-
-Name: Gizem Dal
-
-Pennkey: gizemdal
-
-Live demo: https://gizemdal.github.io/Mini-Crowd-Simulation/
-
-Resources: My main resources include my old implementations from previous assignments such as procedural sky and instanced rendering as well as lecture slides on Biocrowds. As I listed in previous assignment README files, _The Book of Shaders_ (https://thebookofshaders.com) has been a very helpful resource.
-
------
-
-## End Goal:
-My end goal for this project is to build a "realistic" crowd simulation environment where agents move around based on not only location occupancy/vacancy but also personal goals and events happening around the city.
 
 ![](reference/final.png)
+
+**Name:** Gizem Dal
+  - [Portfolio](https://www.gizemdal.com/), [Linkedin](https://www.linkedin.com/in/gizemdal/)
+
+**[Live demo](https://gizemdal.github.io/Mini-Crowd-Simulation/)**
+
+My end goal for this project is to build a "realistic" crowd simulation environment where agents move around based on not only location occupancy/vacancy but also personal goals and events happening around the city.
+
+-----
 
 ## Features and Techniques:
 The simulation consists of a group of agents (the number set initially is 75), procedurally generated buildings and a terrain plane on which the simulation happens.
@@ -38,12 +33,14 @@ Events are used as influences for agent's destinations and movement decisions. A
 A simulation step is basically updating the crowd simulation by one step per agent. The method simulationStep() is called inside the tick() function in main in every iteration to have an ongoing crowd simulation. In each simulation step, the next marker that the agent can go to is determined. The function generates new destination points for agents that have already reached their destination and currently not attending any events.
 
 ### Textures:
-The textures of the terrain plane, the buildings and the background are generated procedurally in the fragment shader by the use of toolbox functions such as fractal brownian motion, squarewave, etc. The texture for the background is taken from an example in _The Book of Shaders_.
+The textures of the terrain plane, the buildings and the background are generated procedurally in the fragment shader by the use of toolbox functions such as fractal brownian motion, squarewave, etc. The background texture is taken from a fbm example in [The Book of Shaders](https://thebookofshaders.com/13/).
 
 ### Control Menu:
 The control menu allows the user to change the building density in the city as well as add/remove events. In order to add an event, the user can enter a coordinate and a name for the event and pick a category from the dropdown menu. By using the sliders for the coordinates of the event, the user can see where this coordinate falls to from the bright green cylinder. In order to remove an event, the user needs to enter the name of the event to be removed (nothing will happen if there is no existing event with the given name).
 
 -----
+
+**Resources:** My main resources include my old implementations from previous assignments such as procedural sky and instanced rendering as well as biocrowds implementation sources. [The Book of Shaders](https://thebookofshaders.com) has also been a helpful resource for several procedural texture implementations.
 
 ## Progress Images:
 
