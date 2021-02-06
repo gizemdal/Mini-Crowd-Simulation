@@ -7,7 +7,7 @@
 
 **[Live demo](https://gizemdal.github.io/Mini-Crowd-Simulation/)**
 
-My end goal for this project is to build a "realistic" crowd simulation environment where agents move around based on not only location occupancy/vacancy but also personal goals and events happening around the city.
+The goal of this project is taking the first steps towards implementing crowd simulation environments where agents move around based on not only location occupancy/vacancy but also personal goals and events happening around the city.
 
 -----
 
