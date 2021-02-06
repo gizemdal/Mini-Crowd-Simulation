@@ -1,4 +1,4 @@
-# Crowd Simulation
+# Mini Crowd Simulation
 
 ![](reference/final.png)
 
