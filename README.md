@@ -1,6 +1,6 @@
 # Mini Crowd Simulation
 
-<img src="reference/final.png" width = 400> <img src="reference/readme_gif.gif" width = 350>
+<img src="reference/final.png" width = 415> <img src="reference/readme_gif.gif" width = 365>
 
 **Name:** Gizem Dal
   - [Portfolio](https://www.gizemdal.com/), [Linkedin](https://www.linkedin.com/in/gizemdal/)
